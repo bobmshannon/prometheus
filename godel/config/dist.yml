@@ -1,0 +1,38 @@
+group-id: com.palantir.haruspex
+products:
+  prometheus:
+    build:
+      main-pkg: ./cmd/prometheus
+      output-dir: sls/prometheus/build
+      os-archs:
+        - os: linux
+          arch: amd64
+    dist:
+      input-dir: sls/prometheus/files
+      output-dir: sls/prometheus/dist
+      dist-type:
+        type: sls
+        info:
+          manifest-extensions:
+            no-stop: true
+            restart-cron: true
+            product-dependencies: []
+            upgrade-strategy: rolling
+            quorum-requirement: any
+    docker:
+    - repository: srx/prometheus/prometheus
+      tag: snapshot
+      context-dir: ./sls/prometheus
+      info:
+        type: sls
+        data:
+          group-id: com.palantir.haruspex
+          manifest-extensions:
+            no-stop: true
+            restart-cron: true
+            product-dependencies: []
+            upgrade-strategy: rolling
+            quorum-requirement: any
+            volumes:
+              data:
+                desired-size: 100G

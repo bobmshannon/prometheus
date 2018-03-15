@@ -1,63 +1,74 @@
 machine:
   environment:
-    DOCKER_IMAGE_NAME: prom/prometheus
-    QUAY_IMAGE_NAME: quay.io/prometheus/prometheus
-    DOCKER_TEST_IMAGE_NAME: quay.io/prometheus/golang-builder:1.10-base
-    REPO_PATH: github.com/prometheus/prometheus
-  pre:
-    - sudo curl -L -o /usr/bin/docker 'https://s3-external-1.amazonaws.com/circle-downloads/docker-1.9.1-circleci'
-    - sudo chmod 0755 /usr/bin/docker
-    - sudo curl -L 'https://github.com/aktau/github-release/releases/download/v0.6.2/linux-amd64-github-release.tar.bz2' | tar xvjf - --strip-components 3 -C $HOME/bin
+    GODIST: "go1.10.linux-amd64.tar.gz"
+    GOPATH: "$HOME/.go_workspace"
+    PROJECT_PATH: "$GOPATH/src/github.com/prometheus/prometheus"
   services:
     - docker
+  pre:
+    - wget -qO- https://artifactory.palantir.build/artifactory/internal-dist-contributions/docker/docker-engine/docker-1.11.2.tgz | sudo tar xvz -C /
+    - sudo cp /docker/* /usr/local/bin/.
+    - sudo cp /docker/* /usr/bin/.
+  post:
+    - mkdir -p download
+    - test -e download/$GODIST || wget -O download/$GODIST https://artifactory.palantir.build/artifactory/external-dist-golang/$GODIST
+    # Create custom Go distribution with packages built for darwin-amd64 if it is not present.
+    - |
+      if [ ! -e download/$GODIST-custom.tgz ]; then
+        sudo rm -rf /usr/local/go && \
+        sudo tar -C /usr/local -xzf download/$GODIST && \
+        sudo env GOOS=darwin GOARCH=amd64 /usr/local/go/bin/go install std && \
+        tar -C /usr/local -czf download/$GODIST-custom.tgz go
+      fi
+    - sudo rm -rf /usr/local/go
+    - sudo tar -C /usr/local -xzf download/$GODIST-custom.tgz
 
 dependencies:
-  pre:
-    - make promu
-    - docker info
-  override:
-    - promu crossbuild
-    - ln -s .build/linux-amd64/prometheus prometheus
-    - ln -s .build/linux-amd64/promtool promtool
-    - |
-      if [ -n "$CIRCLE_TAG" ]; then
-        make docker DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME DOCKER_IMAGE_TAG=$CIRCLE_TAG
-        make docker DOCKER_IMAGE_NAME=$QUAY_IMAGE_NAME DOCKER_IMAGE_TAG=$CIRCLE_TAG
-      else
-        make docker DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME
-        make docker DOCKER_IMAGE_NAME=$QUAY_IMAGE_NAME
-      fi
+    override:
+        - cd $PROJECT_PATH && ./godelw version
+    cache_directories:
+        - ~/download
+        - ~/.godel
+
+checkout:
   post:
-    - mkdir $CIRCLE_ARTIFACTS/binaries/ && cp -a .build/* $CIRCLE_ARTIFACTS/binaries/
-    - docker images
+    # Re-arrange forked project path to match upstream.
+    - rm -rf "$(dirname $PROJECT_PATH)"
+    - mkdir -p "$(dirname $PROJECT_PATH)"
+    - mv "$HOME/$CIRCLE_PROJECT_REPONAME" "$PROJECT_PATH"
+    - ln -s "$PROJECT_PATH" "$HOME/$CIRCLE_PROJECT_REPONAME"
 
 test:
+  pre:
+    - go version
+    - docker version
   override:
-    - docker run --rm -t -v "$(pwd):/app" "${DOCKER_TEST_IMAGE_NAME}" -i "${REPO_PATH}" -T
+    - cd "$PROJECT_PATH" && ./godelw test
+    - cd "$PROJECT_PATH" && ./godelw dist
+  post:
+    - cp -r -v "$PROJECT_PATH"/sls/**/dist/* "$CIRCLE_ARTIFACTS"/
 
 deployment:
-  hub_branch:
-    branch: master
-    owner: prometheus
+  develop:
+    branch: develop
+    owner: SRX
     commands:
-      - docker login -e $DOCKER_EMAIL -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
-      - docker login -e $QUAY_EMAIL -u $QUAY_LOGIN -p $QUAY_PASSWORD quay.io
-      - docker push $DOCKER_IMAGE_NAME
-      - docker push $QUAY_IMAGE_NAME
-  hub_tag:
+    - |
+      cd "$PROJECT_PATH" &&
+      ./godelw publish artifactory \
+          --url "https://artifactory.palantir.build" \
+          --repository internal-dist-snapshot \
+          --user "$ARTIFACTORY_USERNAME" \
+          --password "$ARTIFACTORY_PASSWORD"
+
+  release:
     tag: /^v[0-9]+(\.[0-9]+){2}(-.+|[^-.]*)$/
-    owner: prometheus
+    owner: SRX
     commands:
-      - promu crossbuild tarballs
-      - promu checksum .tarballs
-      - promu release .tarballs
-      - mkdir $CIRCLE_ARTIFACTS/releases/ && cp -a .tarballs/* $CIRCLE_ARTIFACTS/releases/
-      - docker login -e $DOCKER_EMAIL -u $DOCKER_LOGIN -p $DOCKER_PASSWORD
-      - docker login -e $QUAY_EMAIL -u $QUAY_LOGIN -p $QUAY_PASSWORD quay.io
-      - |
-        if [[ "$CIRCLE_TAG" =~ ^v[0-9]+(\.[0-9]+){2}$ ]]; then
-          docker tag "$DOCKER_IMAGE_NAME:$CIRCLE_TAG" "$DOCKER_IMAGE_NAME:latest"
-          docker tag "$QUAY_IMAGE_NAME:$CIRCLE_TAG" "$QUAY_IMAGE_NAME:latest"
-        fi
-      - docker push $DOCKER_IMAGE_NAME
-      - docker push $QUAY_IMAGE_NAME
+    - |
+      cd "$PROJECT_PATH" &&
+      ./godelw publish artifactory \
+          --url "https://artifactory.palantir.build" \
+          --repository internal-dist-release \
+          --user "$ARTIFACTORY_USERNAME" \
+          --password "$ARTIFACTORY_PASSWORD"

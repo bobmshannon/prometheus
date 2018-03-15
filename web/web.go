@@ -55,6 +55,7 @@ import (
 	"github.com/prometheus/prometheus/notifier"
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/promql"
+	"github.com/prometheus/prometheus/push"
 	"github.com/prometheus/prometheus/rules"
 	"github.com/prometheus/prometheus/scrape"
 	"github.com/prometheus/prometheus/storage"
@@ -209,6 +210,7 @@ func New(logger log.Logger, o *Options) *Handler {
 		http.Redirect(w, r, path.Join(o.ExternalURL.Path, "/graph"), http.StatusFound)
 	})
 
+	router.Put("/push", readyf(instrf("push", h.push)))
 	router.Get("/alerts", readyf(instrf("alerts", h.alerts)))
 	router.Get("/graph", readyf(instrf("graph", h.graph)))
 	router.Get("/status", readyf(instrf("status", h.status)))
@@ -490,6 +492,31 @@ func (h *Handler) alerts(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	h.executeTemplate(w, "alerts.html", alertStatus)
+}
+
+func (h *Handler) push(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+		return
+	}
+
+	app, err := h.storage.Appender()
+	if err != nil {
+		level.Debug(h.logger).Log("msg", "unexpected error while initializing storage appender", "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	pusher := push.NewPusher(app, h.logger)
+	total, added, err := pusher.Push(body)
+	if err != nil {
+		level.Debug(h.logger).Log("msg", "unexpected error while pushing metrics into prometheus", "err", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	level.Info(h.logger).Log("msg", "Total Samples", "series", total)
+	level.Info(h.logger).Log("msg", "Added Samples", "series", added)
 }
 
 func (h *Handler) consoles(w http.ResponseWriter, r *http.Request) {

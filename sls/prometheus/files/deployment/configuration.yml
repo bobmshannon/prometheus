@@ -28,7 +28,7 @@ default_conf:
     other_configs: '{{exclude}}'
     other_scrapes: '{{exclude}}'
     port: '9090'
-    prometheus_metrics: '{{discovered.prometheus-metrics}}'
+    prometheus_metrics: '{{discovered.prometheus-metrics + discovered.prometheus-client-output}}'
     protocol: http
     scrape_interval: 1s
     scrape_timeout: 1s
@@ -66,6 +66,10 @@ discovery:
     prometheus-metrics:
       all: true
       role: prometheus-metrics
+      stack: '*'
+    prometheus-client-output:
+      all: true
+      role: metrics-prometheus-client-output
       stack: '*'
     sls:
       all: true

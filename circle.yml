@@ -37,6 +37,8 @@ checkout:
     - mkdir -p "$(dirname $PROJECT_PATH)"
     - mv "$HOME/$CIRCLE_PROJECT_REPONAME" "$PROJECT_PATH"
     - ln -s "$PROJECT_PATH" "$HOME/$CIRCLE_PROJECT_REPONAME"
+    # Ensure all tags are fetched and up-to-date
+    - cd "$PROJECT_PATH" && git tag -l | xargs git tag -d && git fetch -t
 
 test:
   pre:

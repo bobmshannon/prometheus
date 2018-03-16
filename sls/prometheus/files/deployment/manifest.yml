@@ -1,0 +1,12 @@
+{
+    "manifest-version": "1.0",
+    "product-type": "service.v1",
+    "product-group": @productGroup@,
+    "product-name": @productName@,
+    "product-version": @productVersion@,
+    "extensions": {
+        "product-dependencies": [
+
+        ]
+    }
+}

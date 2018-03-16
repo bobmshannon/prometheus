@@ -1,0 +1,64 @@
+groups:
+- name: node.rules
+  rules:
+
+  # Alert for any instance that is unreachable for >5 minutes.
+  - alert: HighCPUUsage
+    expr: 100 - (avg(irate(node_cpu{mode="idle"}[5m])) BY (host) * 100) > 5
+    for: 1m
+    labels:
+       severity: critical
+    annotations:
+         description: "{{ $labels.instance }} of job {{ $labels.job }} has high CPU load"
+         summary: "Instance {{ $labels.instance }} high cpu"
+  - alert: InstancesDown
+    expr: avg(up{job="node"}) BY (job) < 0.75
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+         summary: "{{ $labels.instance }} is down"
+         description: "{{ $labels.instance }} is down"
+  - alert: DiskWillFillIn4Hours
+    expr: predict_linear(node_filesystem_free{job="node"}[1h], 4 * 3600) < 0
+    for: 5m
+    labels:
+      severity: page
+  - alert: HighInodeUsage
+    expr: node_filesystem_files_free{fstype=~"(ext.|xfs)",job="node"} / node_filesysteim_files{fstype=~"(ext.|xfs)",job="node"}* 100 <= 20
+    for: 15m
+    labels:
+        severity: critical
+    annotations:
+        description: Consider ssh'ing into the instance and removing files or clean
+  - alert: InstanceLowMemory
+    expr: node_memory_MemAvailable < 256000000
+    for: 15m
+    labels:
+        severity: critical
+    annotations:
+        description: Memory is low!
+
+  - alert: CustomHostCheckNotRunning
+    expr: rate(node_textfile_mtime[5m]) == 0
+    for: 2m
+    labels:
+        severity: critical
+    annotations:
+        description: please take a look at your custom host alert there is a file not updating its file!
+
+  - alert: CustomHostHighRamUsage
+    expr: (node_memory_MemTotal - node_memory_MemFree) / node_memory_MemTotal > 0.2
+    labels:
+        severity: warning
+    annotations:
+        description: "An alert that triggers A LOT. Specifically, if a node is using more than 20% of its RAM."
+        summary: "{{ $labels.instance }} has high RAM usage"
+
+  - alert: LowEntropy
+    expr: avg_over_time(node_entropy_available_bits{job="hosts"}[5m]) <= 2000
+    for: 2m
+    labels:
+        severity: critical
+    annotations:
+        description: There is a low entropy issue with this host

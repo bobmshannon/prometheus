@@ -19,6 +19,6 @@ Prometheus' main distinguishing features as compared to other monitoring systems
 - multiple modes of **graphing and dashboarding support**
 - support for hierarchical and horizontal **federation**
 
-## About this fork
+## About this repository
 
-This repository contains a fork that includes an endpoint for pushing time-series data directly to Prometheus.
+This repository is a fork that includes an endpoint for pushing time-series data directly to Prometheus.

@@ -14,7 +14,7 @@ products:
         type: sls
         info:
           reloadable: true
-          service-args: --config.file=$CONF_FILE --storage.tsdb.path=$STORAGE_TSDB_PATH --web.listen-address=$WEB_LISTEN_ADDRESS --log.level=$LOG_LEVEL --web.enable-lifecycle
+          service-args: --config.file=$CONFIG_FILE --storage.tsdb.path=$STORAGE_TSDB_PATH --web.listen-address=$WEB_LISTEN_ADDRESS --log.level=$LOG_LEVEL --web.enable-lifecycle
           manifest-extensions:
             no-stop: true
             restart-cron: true

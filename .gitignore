@@ -5,7 +5,10 @@
 /*.yml
 /*.rules
 *.exe
+.DS_Store
 
+build
+dist
 /prometheus
 /promtool
 benchmark.txt
@@ -13,6 +16,7 @@ benchmark.txt
 /cmd/prometheus/data
 /cmd/prometheus/debug
 /.build
+/.idea
 /.release
 /.tarballs
 

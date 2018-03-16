@@ -1,0 +1,60 @@
+global:
+  evaluation_interval: {{.conf.prometheus.evaluation_interval}}
+  scrape_interval: {{.conf.prometheus.scrape_interval}}
+  scrape_timeout: {{.conf.prometheus.scrape_timeout}}
+rule_files:
+  - '{{.service_home}}/var/conf/alerts/*.yml'
+  - '{{.service_home}}/var/conf/alerts/untracked/*.yml'
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+        - '{{.conf.prometheus.hostname}}:{{$.conf.prometheus.port}}'
+  - job_name: node
+    scheme: https
+    static_configs:
+      - targets:{{range .conf.prometheus.nodes}}{{range .hostnames}}
+         - {{.}}:{{range $.conf.prometheus.nodes_port}}{{.}}{{end}}{{end}}{{end}}
+    tls_config:
+      ca_file: {{$.conf.prometheus.ssl.ca_path}}
+      cert_file: {{$.conf.prometheus.ssl.cert_path}}
+      key_file: {{$.conf.prometheus.ssl.pem_path}}
+  {{if .conf.prometheus.other_scrapes}}{{/*
+  */}}{{range $.conf.prometheus.other_scrapes}}{{/*
+  */}}- job_name: {{.job_name}}
+    metrics_path: {{.metrics_path}}
+    scheme: {{.scheme}}
+    static_configs:
+      - targets:
+        {{range .static_configs}}{{range .targets}}- {{.}}{{end}}{{end}}
+    tls_config:
+      ca_file: {{$.conf.prometheus.ssl.ca_path}}
+      cert_file: {{$.conf.prometheus.ssl.cert_path}}
+      key_file: {{$.conf.prometheus.ssl.pem_path}}
+  {{end}}{{end}}
+  {{if .conf.prometheus.prometheus_metrics}}{{/*
+  */}}{{range $.conf.prometheus.prometheus_metrics}}{{/*
+  */}}- job_name: {{.job_name}}
+    metrics_path: {{.metrics_path}}
+    {{ if .basic_auth -}}
+    basic_auth:
+      username: {{ .basic_auth.username }}
+      password: {{ .basic_auth.password }}
+    {{ end -}}
+    scheme: {{.scheme}}
+    static_configs:
+      - targets:
+        {{range .static_configs}}{{range .targets}}- {{.}}{{end}}{{end}}
+    tls_config:
+      ca_file: {{$.conf.prometheus.ssl.ca_path}}
+      cert_file: {{$.conf.prometheus.ssl.cert_path}}
+      key_file: {{$.conf.prometheus.ssl.pem_path}}
+  {{end}}{{end}}
+alerting:
+  alertmanagers:
+    - scheme: {{.conf.prometheus.alertmanager_scheme}}
+      static_configs:
+        - targets:
+            {{range .conf.prometheus.alertmanagers}}- {{.}}
+            {{end}}
+{{if .conf.prometheus.other_configs}}{{.conf.prometheus.other_configs}}{{end}}

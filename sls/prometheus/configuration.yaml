@@ -1,0 +1,95 @@
+default_conf:
+  ENV:
+    CONFIG_FILE: '{{service_home}}/var/conf/prometheus.yml'
+    LOG_FILE: '{{service_home}}/var/log/prometheus-console.log'
+    LOG_LEVEL: debug
+    RELOAD_URL: '{{conf.prometheus.protocol}}://{{conf.prometheus.hostname}}:{{conf.prometheus.port}}/-/reload'
+    STORAGE_TSDB_PATH: '{{service_home}}/var/data/'
+    WEB_LISTEN_ADDRESS: '{{conf.prometheus.address}}:{{conf.prometheus.port}}'
+  logrotate:
+    files:
+      - filepath: '{{conf.ENV.LOG_FILE}}'
+        settings: []
+    global:
+      - compress
+      - copytruncate
+      - daily
+      - rotate 7
+      - size 1024M
+  prometheus:
+    address: 0.0.0.0
+    alertmanager_scheme: '{{discovered.alertmanager-scheme}}'
+    alertmanagers: '{{discovered.all-alertmanagers}}'
+    ca_path: '{{ssl.ca_path}}'
+    evaluation_interval: 1m
+    hostname: '{{host.hostname}}'
+    nodes: '{{discovered.all-nodes}}'
+    nodes_port: '{{discovered.all-nodes-port}}'
+    other_configs: '{{exclude}}'
+    other_scrapes: '{{exclude}}'
+    port: '9090'
+    prometheus_metrics: '{{discovered.prometheus-metrics}}'
+    protocol: http
+    scrape_interval: 1s
+    scrape_timeout: 1s
+    sls: '{{discovered.sls}}'
+    sls_java: '{{discovered.sls-java}}'
+    sls_logging: '{{discovered.sls-logging}}'
+    sls_status: '{{discovered.sls-logging}}'
+    sls_endpoints:
+      - readiness
+      - liveness
+      - health
+    ssl:
+      ca_path: '{{ssl.ca_path}}'
+      cert_path: '{{ssl.cert_path}}'
+      pem_path: '{{ssl.pem_path}}'
+  service: {}
+discovery:
+  consumes:
+    alertmanager-scheme:
+      role: prometheus-alertmanager
+      select: scheme
+    all-alertmanagers:
+      all: true
+      role: prometheus-alertmanager
+      select: endpoint
+    all-nodes:
+      all: true
+      role: prometheus-node
+      stack: '*'
+    all-nodes-port:
+      all: true
+      role: prometheus-node
+      select: port
+      stack: '*'
+    prometheus-metrics:
+      all: true
+      role: prometheus-metrics
+      stack: '*'
+    sls:
+      all: true
+      role: sls
+      stack: '*'
+    sls-java:
+      all: true
+      role: sls-java
+      stack: '*'
+    sls-status:
+      all: true
+      role: sls-status
+      stack: '*'
+  produces:
+    prometheus:
+      endpoint: '{{self_discovered.prometheus.hostname}}:{{self_discovered.prometheus.port}}'
+      path: ''
+      port: '{{conf.prometheus.port}}'
+      role: prometheus
+      scheme: '{{conf.prometheus.protocol}}'
+managed_files:
+  var/conf/logrotate.conf:
+    live-reload: kick
+    type: erb
+  var/conf/prometheus.yml:
+    live-reload: kick
+    type: tmpl

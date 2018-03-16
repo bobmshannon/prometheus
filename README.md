@@ -1,4 +1,4 @@
-# Prometheus [![CircleCI](https://circle.palantir.build/gh/SRX/prometheus.svg?style=svg)](https://circle.palantir.build/gh/SRX/prometheus)
+# Prometheus [[![CircleCI](https://circle.palantir.build/gh/SRX/prometheus/tree/master.svg?style=svg)](https://circle.palantir.build/gh/SRX/prometheus/tree/master)
 
 Visit [prometheus.io](https://prometheus.io) for the full documentation,
 examples and guides.

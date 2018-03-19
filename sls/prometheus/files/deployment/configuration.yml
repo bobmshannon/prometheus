@@ -29,7 +29,7 @@ default_conf:
         labels:
            severity: critical
         annotations:
-          description: "{{`Host {{ $labels.host }}'s CPU on average has been saturated over the last 10 minutes, an indicator likely performance caused by a CPU bottleneck.`}}"
+          description: "{{`Host {{ $labels.host }}'s CPU on average has been saturated over the last 10 minutes which is an indicator of likely performance problems caused by a CPU bottleneck.`}}"
           summary: "{{`Host {{ $labels.host }}'s CPU is saturated`}}"
       # Page if the disk is predicted to fill up within 4 hours.
       - alert: DiskWillFillIn4Hours

@@ -10,17 +10,8 @@ scrape_configs:
     static_configs:
       - targets:
         - '{{.conf.prometheus.hostname}}:{{$.conf.prometheus.port}}'
-  - job_name: node
-    scheme: https
-    static_configs:
-      - targets:{{range .conf.prometheus.nodes}}{{range .hostnames}}
-         - {{.}}:{{range $.conf.prometheus.nodes_port}}{{.}}{{end}}{{end}}{{end}}
-    tls_config:
-      ca_file: {{$.conf.prometheus.ssl.ca_path}}
-      cert_file: {{$.conf.prometheus.ssl.cert_path}}
-      key_file: {{$.conf.prometheus.ssl.pem_path}}
-  {{if .conf.prometheus.other_scrapes}}{{/*
-  */}}{{range $.conf.prometheus.other_scrapes}}{{/*
+  {{if .conf.prometheus.custom_scrapes}}{{/*
+  */}}{{range $.conf.prometheus.custom_scrapes}}{{/*
   */}}- job_name: {{.job_name}}
     metrics_path: {{.metrics_path}}
     scheme: {{.scheme}}
@@ -60,4 +51,4 @@ alerting:
         - targets:
             {{range .conf.prometheus.alertmanagers}}- {{.}}
             {{end}}
-{{if .conf.prometheus.other_configs}}{{.conf.prometheus.other_configs}}{{end}}
+{{if .conf.prometheus.custom_configs}}{{.conf.prometheus.custom_configs}}{{end}}

@@ -49,7 +49,7 @@ default_conf:
         annotations:
           summary: "{{`High inodes usage in filesystem {{ $labels.path }} on host {{ $labels.host }}`}}"
           description: "{{`A very high number of inodes are being used in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
-      # Alert if an instance is experiencing memory pressure.
+      # Alert if a host is experiencing memory pressure.
       - alert: HostMemoryPressure
         expr: system:mem_available_percent < 5
         for: 10m

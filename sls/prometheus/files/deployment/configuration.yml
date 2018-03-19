@@ -29,8 +29,8 @@ default_conf:
         labels:
            severity: critical
         annotations:
-          description: Host {{ $labels.host }}'s CPU on average has been saturated over the last 10 minutes, an indicator likely performance caused by a CPU bottleneck.
-          summary: Host {{ $labels.host }}'s CPU is saturated
+          description: "{{`Host {{ $labels.host }}'s CPU on average has been saturated over the last 10 minutes, an indicator likely performance caused by a CPU bottleneck.`}}"
+          summary: "{{`Host {{ $labels.host }}'s CPU is saturated`}}"
       # Page if the disk is predicted to fill up within 4 hours.
       - alert: DiskWillFillIn4Hours
         expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 4 * 3600) >= 100
@@ -38,8 +38,8 @@ default_conf:
         labels:
           severity: page
         annotations:
-          description: Disk {{ $labels.path }} predicted to fill up within the next 4 hours on {{ $labels.host }}
-          summary: At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.
+          description: "{{`Disk {{ $labels.path }} predicted to fill up within the next 4 hours on {{ $labels.host }}`}}"
+          summary: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
       # Alert if there is a large number of inodes being used.
       - alert: HighInodeUsage
         expr: 100*system:fs_inodes_used{fstype=~"(ext.|xfs)"}/system:fs_inodes_total{fstype=~"(ext.|xfs)"} >= 80
@@ -47,8 +47,8 @@ default_conf:
         labels:
           severity: critical
         annotations:
-          summary: High inodes usage in filesystem {{ $labels.path }} on host {{ $labels.host }}
-          description: A very high number of inodes are being used in the filesystem {{ $labels.path }} on host {{ $labels.host }}.
+          summary: "{{`High inodes usage in filesystem {{ $labels.path }} on host {{ $labels.host }}`}}"
+          description: "{{`A very high number of inodes are being used in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
       # Alert if an instance is experiencing memory pressure.
       - alert: HostMemoryPressure
         expr: system:mem_available_percent < 5
@@ -56,8 +56,8 @@ default_conf:
         labels:
             severity: critical
         annotations:
-            summary: Memory pressure on host {{ $labels.host }}
-            description: The amount of available memory for application use on host {{ $labels.host }} is very low. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.
+            summary: "{{`Memory pressure on host {{ $labels.host }}`}}"
+            description: "{{`The amount of available memory for application use on host {{ $labels.host }} is very low. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
   prometheus:
     rule_files:
       - '{{ service_home }}/var/conf/alerts.yml'

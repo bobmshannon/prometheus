@@ -26,7 +26,7 @@ default_conf:
     - name: system.rules
       rules:
       # Alert if an instance CPU is saturated on average for 10 minutes.
-      - alert: HighCPUUsage
+      - alert: SystemSaturatedCPU
         expr: 100 - avg_over_time(system:core_idle{core="cpu-total"}[10m]) - avg_over_time(system:core_iowait{core="cpu-total"}[10m]) >= 95
         for: 10m
         labels:
@@ -35,7 +35,7 @@ default_conf:
           description: "{{`Host {{ $labels.host }}'s CPU on average has been saturated over the last 10 minutes which is an indicator of likely performance problems caused by a CPU bottleneck.`}}"
           summary: "{{`Host {{ $labels.host }}'s CPU is saturated`}}"
       # Page if the disk is predicted to fill up within 4 hours.
-      - alert: DiskWillFillIn4Hours
+      - alert: SystemDiskWillFillIn4Hours
         expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 4 * 3600) >= 100
         for: 10m
         labels:
@@ -44,7 +44,7 @@ default_conf:
           description: "{{`Disk {{ $labels.path }} predicted to fill up within the next 4 hours on {{ $labels.host }}`}}"
           summary: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
       # Alert if there is a large number of inodes being used.
-      - alert: HighInodeUsage
+      - alert: SystemHighInodeUsage
         expr: 100*system:fs_inodes_used{fstype=~"(ext.|xfs)"}/system:fs_inodes_total{fstype=~"(ext.|xfs)"} >= 80
         for: 10m
         labels:
@@ -53,7 +53,7 @@ default_conf:
           summary: "{{`High inodes usage in filesystem {{ $labels.path }} on host {{ $labels.host }}`}}"
           description: "{{`A very high number of inodes are being used in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
       # Alert if an instance is experiencing memory pressure.
-      - alert: HostMemoryPressure
+      - alert: SystemMemoryPressure
         expr: system:mem_available_percent < 5
         for: 10m
         labels:

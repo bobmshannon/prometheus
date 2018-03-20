@@ -54,13 +54,13 @@ default_conf:
           description: "{{`{{ $value }}% of inodes have been exhausted in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
       # Alert if a system is experiencing memory pressure.
       - alert: SystemMemoryPressure
-        expr: min_over_time(system:mem_available_percent{}[5m]) <= 5
+        expr: min_over_time(system:mem_available_percent{}[5m]) <= 10
         for: 5m
         labels:
           severity: critical
         annotations:
           summary: "{{`Memory pressure on host {{ $labels.host }}`}}"
-          description: "{{`The amount of available memory for application use on host {{ $labels.host }} is {{ $value }}. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
+          description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.host }}. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
       # Alert if a system is dropping packets.
       - alert: SystemDroppedPackets
         expr: 100*(increase(system:net_drop_in{}[5m])+increase(system:net_drop_out{}[5m])+increase(system:net_packets_in_error{}[5m])+increase(system:net_packets_out_error{}[5m])) / (increase(system:net_packets_in_count{}[5m])+increase(system:net_packets_in_count{}[5m])) >= 1

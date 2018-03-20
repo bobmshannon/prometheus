@@ -34,6 +34,15 @@ default_conf:
         annotations:
           summary: "{{`CPU usage on host {{ $labels.host }} >= 95% for extended period`}}"
           description: "{{`CPU usage on host {{ $labels.host }} has been {{ $value }}% utilized on average over the last 10 minutes. A saturated CPU can cause application and overall system performance issues primarily through increased run queue service times.`}}"
+      # Page if disk usage is very high.
+      - alert: SystemHighDiskUsage
+        expr: system:disk_used_percent{path!="/media"} >= 95
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "{{`Disk {{ $labels.path }} on host {{ $labels.host }} is running out of space.`}}"
+          description: "{{`The disk {{ $labels.path }} on host {{ $labels.host }} is currently at {{ $value }}% usage and is at risk of running out of space soon.`}}"
       # Page if the disk is predicted to fill up within 4 hours.
       - alert: SystemDiskWillFillIn4Hours
         expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 60 * 60 * 4) >= 100

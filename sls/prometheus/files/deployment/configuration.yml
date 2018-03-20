@@ -19,7 +19,7 @@ default_conf:
       - size 1024M
   baseline_alerts:
     groups:
-    # The set of SLS compliant service alerting rules evaluated by Prometheus.
+    # The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
     - name: sls.rules
       rules: []
     # The set of system baseline alerting rules evaluated by Prometheus.

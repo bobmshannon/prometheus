@@ -25,15 +25,15 @@ default_conf:
     # The set of system baseline alerting rules evaluated by Prometheus.
     - name: system.rules
       rules:
-      # Alert if an instance CPU is saturated on average for 10 minutes.
-      - alert: SystemSaturatedCPU
+      # Alert if an instance CPU is >=95% utilized on average for 10 minutes.
+      - alert: SystemHighCPUUtilization
         expr: 100 - avg_over_time(system:core_idle{core="cpu-total"}[10m]) - avg_over_time(system:core_iowait{core="cpu-total"}[10m]) >= 95
         for: 10m
         labels:
            severity: critical
         annotations:
-          description: "{{`Host {{ $labels.host }}'s CPU on average has been saturated over the last 10 minutes which is an indicator of likely performance problems caused by a CPU bottleneck.`}}"
-          summary: "{{`Host {{ $labels.host }}'s CPU is saturated`}}"
+          description: "{{`CPU usage on host {{ $labels.host }} has been >= 95% utilization on average over the last 10 minutes. A saturated CPU can cause application and overall system performance issues primarily through increased run queue service times.`}}"
+          summary: "{{`CPU usage on host {{ $labels.host }} >= 95% for extended period`}}"
       # Page if the disk is predicted to fill up within 4 hours.
       - alert: SystemDiskWillFillIn4Hours
         expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 4 * 3600) >= 100

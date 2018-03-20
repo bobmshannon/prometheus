@@ -32,8 +32,8 @@ default_conf:
         labels:
            severity: critical
         annotations:
-          description: "{{`CPU usage on host {{ $labels.host }} has been >= 95% utilization on average over the last 10 minutes. A saturated CPU can cause application and overall system performance issues primarily through increased run queue service times.`}}"
           summary: "{{`CPU usage on host {{ $labels.host }} >= 95% for extended period`}}"
+          description: "{{`CPU usage on host {{ $labels.host }} has been {{ $value }}% utilized on average over the last 10 minutes. A saturated CPU can cause application and overall system performance issues primarily through increased run queue service times.`}}"
       # Page if the disk is predicted to fill up within 4 hours.
       - alert: SystemDiskWillFillIn4Hours
         expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 4 * 3600) >= 100
@@ -42,7 +42,7 @@ default_conf:
           severity: page
         annotations:
           summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 4 hours on {{ $labels.host }}`}}"
-          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
+          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours. It's current usage is {{ $value }}.`}}"
       # Alert if there is a large number of inodes being used.
       - alert: SystemHighInodeUsage
         expr: 100*system:fs_inodes_used{fstype=~"(ext.|xfs)"}/system:fs_inodes_total{fstype=~"(ext.|xfs)"} >= 80
@@ -51,7 +51,7 @@ default_conf:
           severity: critical
         annotations:
           summary: "{{`High inodes usage in filesystem {{ $labels.path }} on host {{ $labels.host }}`}}"
-          description: "{{`A very high number of inodes are being used in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
+          description: "{{`{{ $value }}% of inodes have been exhausted in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
       # Alert if a system is experiencing memory pressure.
       - alert: SystemMemoryPressure
         expr: min_over_time(system:mem_available_percent{}[5m]) <= 5
@@ -60,7 +60,7 @@ default_conf:
           severity: critical
         annotations:
           summary: "{{`Memory pressure on host {{ $labels.host }}`}}"
-          description: "{{`The amount of available memory for application use on host {{ $labels.host }} is very low. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
+          description: "{{`The amount of available memory for application use on host {{ $labels.host }} is {{ $value }}. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
       # Alert if a system is dropping packets.
       - alert: SystemDroppedPackets
         expr: 100*(increase(system:net_drop_in{}[5m])+increase(system:net_drop_out{}[5m])+increase(system:net_packets_in_error{}[5m])+increase(system:net_packets_out_error{}[5m])) / (increase(system:net_packets_in_count{}[5m])+increase(system:net_packets_in_count{}[5m])) >= 1
@@ -69,8 +69,7 @@ default_conf:
           severity: critical
         annotations:
           summary: "{{`Packets being dropped on host {{ $labels.host }}`}}"
-          description: "{{`The 5 minute dropped packet rate has exceeded 1% on {{ $labels.interface }} on host {{ $labels.host }}`}}"
-
+          description: "{{`The 5 minute dropped packet rate is {{ $value }}% on {{ $labels.interface }} on host {{ $labels.host }}.`}}"
   monitored_hosts: '{{discovered.metrics-agent[0].hostnames}}'
   prometheus:
     rule_files:

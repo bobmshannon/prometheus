@@ -36,13 +36,22 @@ default_conf:
           description: "{{`CPU usage on host {{ $labels.host }} has been {{ $value }}% utilized on average over the last 10 minutes. A saturated CPU can cause application and overall system performance issues primarily through increased run queue service times.`}}"
       # Page if the disk is predicted to fill up within 4 hours.
       - alert: SystemDiskWillFillIn4Hours
-        expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 4 * 3600) >= 100
+        expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 60 * 60 * 4) >= 100
         for: 10m
         labels:
           severity: page
         annotations:
           summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 4 hours on {{ $labels.host }}`}}"
-          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours. It's current usage is {{ $value }}.`}}"
+          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
+      # Page if the disk is predicted to fill up within 2 weeks.
+      - alert: SystemDiskWillFillIn2Weeks
+        expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 60 * 60 * 24 * 14) >= 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 2 weeks on {{ $labels.host }}`}}"
+          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 2 weeks.`}}"
       # Alert if there is a large number of inodes being used.
       - alert: SystemHighInodeUsage
         expr: 100*system:fs_inodes_used{fstype=~"(ext.|xfs)"}/system:fs_inodes_total{fstype=~"(ext.|xfs)"} >= 80

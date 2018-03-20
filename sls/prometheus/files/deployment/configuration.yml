@@ -140,7 +140,3 @@ managed_files:
   var/conf/host_alerts.yml:
     live-reload: kick
     type: tmpl
-<<<<<<< HEAD
-
-=======
->>>>>>> develop

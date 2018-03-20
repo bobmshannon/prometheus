@@ -1,0 +1,16 @@
+{{ if .conf.monitored_hosts -}}
+groups:
+- name: host.rules
+  rules:
+  {{ range .conf.monitored_hosts -}}
+  # Page if {{ . }} is unhealthy or no longer pushing metrics.
+  - alert: HostNoData ({{ . }})
+    expr: absent(system:uptime{host="{{ . }}"}) >= 1
+    for: 10m
+    labels:
+       severity: page
+    annotations:
+      description: Host {{ . }} has stopped reporting metrics. Is the host unhealthy or the metrics agent otherwise not running?
+      summary: Host {{ . }} has stopped reporting metrics
+  {{ end -}}
+{{ end -}}

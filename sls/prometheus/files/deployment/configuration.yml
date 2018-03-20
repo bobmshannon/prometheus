@@ -17,9 +17,12 @@ default_conf:
       - daily
       - rotate 7
       - size 1024M
-  # The set of system level baseline alerting rules evaluated by Prometheus.
-  alerts:
+  baseline_alerts:
     groups:
+    # The set of SLS compliant service alerting rules evaluated by Prometheus.
+    - name: sls.rules
+      rules: []
+    # The set of system baseline alerting rules evaluated by Prometheus.
     - name: system.rules
       rules:
       # Alert if an instance CPU is saturated on average for 10 minutes.
@@ -58,9 +61,11 @@ default_conf:
         annotations:
             summary: "{{`Memory pressure on host {{ $labels.host }}`}}"
             description: "{{`The amount of available memory for application use on host {{ $labels.host }} is very low. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
+  monitored_hosts: '{{discovered.metrics-agent[0].hostnames}}'
   prometheus:
     rule_files:
-      - '{{ service_home }}/var/conf/alerts.yml'
+      - '{{ service_home }}/var/conf/host_alerts.yml'
+      - '{{ service_home }}/var/conf/baseline_alerts.yml'
     address: 0.0.0.0
     alertmanager_scheme: '{{ discovered.alertmanager-scheme }}'
     alertmanagers: '{{ discovered.all-alertmanagers }}'
@@ -87,6 +92,10 @@ discovery:
       all: true
       role: prometheus-alertmanager
       select: endpoint
+    metrics-agent:
+      all: true
+      role: metrics-agent
+      stack: '*'
     prometheus-metrics:
       all: true
       role: prometheus-metrics
@@ -115,7 +124,10 @@ managed_files:
   var/conf/prometheus.yml:
     live-reload: kick
     type: tmpl
-  var/conf/alerts.yml:
+  var/conf/baseline_alerts.yml:
     live-reload: kick
-    content: alerts
+    content: baseline_alerts
     type: yaml
+  var/conf/host_alerts.yml:
+    live-reload: kick
+    type: tmpl

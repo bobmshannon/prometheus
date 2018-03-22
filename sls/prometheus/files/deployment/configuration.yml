@@ -56,7 +56,7 @@ default_conf:
           description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
       # Page if the disk is predicted to fill up within 2 weeks.
       - alert: SystemDiskWillFillIn2Weeks
-        expr: predict_linear(system:disk_used_percent{path!="/media"}[24h], 60 * 60 * 24 * 14) >= 100
+        expr: predict_linear(system:disk_used_percent{path!~"/media|/tmp"}[1d], 60 * 60 * 24 * 14) >= 100
         for: 10m
         labels:
           severity: warning

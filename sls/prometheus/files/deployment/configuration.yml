@@ -161,7 +161,7 @@ discovery:
       scheme: '{{ conf.prometheus.protocol }}'
     prometheus-push:
       endpoint: '{{ self_discovered.prometheus.hostname}}:{{ self_discovered.prometheus.port }}'
-      path: /push
+      path: '{{ conf.prometheus.context_path }}/push'
       port: '{{ conf.prometheus.port }}'
       role: prometheus-push
       scheme: '{{ conf.prometheus.protocol }}'

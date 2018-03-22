@@ -97,7 +97,15 @@ default_conf:
         annotations:
           summary: "{{`Zombie processes on host {{ $labels.host }}`}}"
           description: "{{`There are {{ $value }} zombie processes running on host {{ $labels.host }}. Zombie processes are a resource leak that can cause PID pool exhaustion on the system. These processes are typically caused by a bug in the parent process.`}}"
-
+      # Alert if a system has a low amount of entropy.
+      - alert: SystemLowEntropy
+        expr: avg_over_time(system:entropy_available{}[10m]) <= 1024
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{`Low entropy on host {{ $labels.host }}`}}"
+          description: "{{`The average number of bits available in the entropy pool over the last 10 minutes is {{ $value }} which is very low.`}}"
   monitored_hosts: '{{discovered.metrics-agent[0].hostnames}}'
   prometheus:
     rule_files:

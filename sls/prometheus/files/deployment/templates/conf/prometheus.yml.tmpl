@@ -7,10 +7,6 @@ rule_files:
 - {{ . }}
 {{ end -}}
 scrape_configs:
-  - job_name: prometheus
-    static_configs:
-      - targets:
-        - '{{.conf.prometheus.hostname}}:{{$.conf.prometheus.port}}'
   {{if .conf.prometheus.custom_scrapes}}{{/*
   */}}{{range $.conf.prometheus.custom_scrapes}}{{/*
   */}}- job_name: {{.job_name}}

@@ -159,12 +159,21 @@ discovery:
       port: '{{ conf.prometheus.port }}'
       role: prometheus
       scheme: '{{ conf.prometheus.protocol }}'
+    prometheus-metrics:
+      job_name: prometheus-metrics
+      path: '{{ conf.prometheus.context_path }}/metrics'
+      port: '{{ self_discovered.prometheus.port }}'
+      role: prometheus-metrics
+      scheme: '{{ self_discovered.prometheus.scheme }}'
+      static_configs:
+        - targets:
+            - '{{self_discovered.prometheus.hostname}}:{{self_discovered.prometheus.port}}'
     prometheus-push:
       endpoint: '{{ self_discovered.prometheus.hostname}}:{{ self_discovered.prometheus.port }}'
       path: '{{ conf.prometheus.context_path }}/push'
-      port: '{{ conf.prometheus.port }}'
+      port: '{{ self_discovered.prometheus.port }}'
       role: prometheus-push
-      scheme: '{{ conf.prometheus.protocol }}'
+      scheme: '{{ self_discovered.prometheus.scheme }}'
 managed_files:
   var/conf/logrotate.conf:
     live-reload: kick

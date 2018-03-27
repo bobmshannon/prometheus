@@ -113,7 +113,7 @@ default_conf:
     rule_files:
       - '{{ service_home }}/var/conf/host_alerts.yml'
       - '{{ service_home }}/var/conf/baseline_alerts.yml'
-    address: 0.0.0.0
+    address: 127.0.0.1
     alertmanager_scheme: '{{ discovered.alertmanager-scheme }}'
     alertmanagers: '{{ discovered.all-alertmanagers }}'
     ca_path: '{{ ssl.ca_path }}'
@@ -154,7 +154,7 @@ discovery:
       stack: '*'
   produces:
     prometheus:
-      endpoint: '{{ self_discovered.prometheus.hostname }}:{{ self_discovered.prometheus.port }}'
+      external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}'
       port: '{{ conf.prometheus.port }}'
       role: prometheus
@@ -169,7 +169,7 @@ discovery:
         - targets:
             - '{{self_discovered.prometheus.hostname}}:{{self_discovered.prometheus.port}}'
     prometheus-push:
-      endpoint: '{{ self_discovered.prometheus.hostname}}:{{ self_discovered.prometheus.port }}'
+      external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}/push'
       port: '{{ self_discovered.prometheus.port }}'
       role: prometheus-push

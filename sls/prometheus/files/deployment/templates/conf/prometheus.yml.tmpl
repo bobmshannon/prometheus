@@ -23,7 +23,7 @@ scrape_configs:
   {{if .conf.prometheus.prometheus_metrics}}{{/*
   */}}{{range $.conf.prometheus.prometheus_metrics}}{{/*
   */}}- job_name: {{.job_name}}
-    metrics_path: {{.path}}
+    metrics_path: {{.metrics_path}}
     {{ if .basic_auth -}}
     basic_auth:
       username: {{ .basic_auth.username }}
@@ -32,9 +32,8 @@ scrape_configs:
     scheme: {{.scheme}}
     static_configs:
       - targets:
-        {{ $role := . -}}
-        {{ range .hostnames -}}
-        - {{.}}:{{$role.port}}
+        {{ range .targets -}}
+        - {{.}}
         {{ end }}
     tls_config:
       ca_file: {{$.conf.prometheus.ssl.ca_path}}

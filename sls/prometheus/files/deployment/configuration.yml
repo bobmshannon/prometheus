@@ -161,13 +161,11 @@ discovery:
       scheme: '{{ conf.prometheus.protocol }}'
     prometheus-metrics:
       job_name: prometheus-metrics
-      path: '{{ conf.prometheus.context_path }}/metrics'
-      port: '{{ self_discovered.prometheus.port }}'
+      metrics_path: '{{ conf.prometheus.context_path }}/metrics'
       role: prometheus-metrics
       scheme: '{{ self_discovered.prometheus.scheme }}'
-      static_configs:
-        - targets:
-            - '{{self_discovered.prometheus.hostname}}:{{self_discovered.prometheus.port}}'
+      targets:
+        - '{{ self_discovered.prometheus.external_hostname }}'
     prometheus-push:
       external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}/push'

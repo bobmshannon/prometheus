@@ -56,7 +56,7 @@ default_conf:
           description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
       # Page if the disk is predicted to fill up within 2 weeks.
       - alert: SystemDiskWillFillIn2Weeks
-        expr: predict_linear(system:disk_used_percent{path!~"/media|/tmp"}[1d], 60 * 60 * 24 * 14) >= 100
+        expr: predict_linear(system:disk_used_percent{path!~"/media|/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
         for: 10m
         labels:
           severity: warning
@@ -108,7 +108,7 @@ default_conf:
         annotations:
           summary: "{{`Low entropy on host {{ $labels.host }}`}}"
           description: "{{`The average number of bits available in the entropy pool over the last 10 minutes is {{ $value }} which is very low.`}}"
-  monitored_hosts: '{{discovered.metrics-agent[0].hostnames}}'
+  monitored_hosts: '{{ discovered.metrics-agent.hostnames }}'
   prometheus:
     rule_files:
       - '{{ service_home }}/var/conf/host_alerts.yml'
@@ -141,7 +141,7 @@ discovery:
       role: prometheus-alertmanager
       select: endpoint
     metrics-agent:
-      all: true
+      all: false
       role: metrics-agent
       stack: '*'
     prometheus-metrics:
@@ -161,13 +161,11 @@ discovery:
       scheme: '{{ conf.prometheus.protocol }}'
     prometheus-metrics:
       job_name: prometheus-metrics
-      path: '{{ conf.prometheus.context_path }}/metrics'
-      port: '{{ self_discovered.prometheus.port }}'
+      metrics_path: '{{ conf.prometheus.context_path }}/metrics'
       role: prometheus-metrics
       scheme: '{{ self_discovered.prometheus.scheme }}'
-      static_configs:
-        - targets:
-            - '{{self_discovered.prometheus.hostname}}:{{self_discovered.prometheus.port}}'
+      targets:
+        - '{{ self_discovered.prometheus.external_hostname }}'
     prometheus-push:
       external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}/push'

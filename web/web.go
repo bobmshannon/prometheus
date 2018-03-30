@@ -412,7 +412,7 @@ func (h *Handler) Run(ctx context.Context) error {
 	var listener net.Listener
 	var err error
 
-	if h.options.EnableHTTPS {
+	if h.options.CertificateFile != "" && h.options.KeyFile != "" {
 		c, err := tls.LoadX509KeyPair(h.options.CertificateFile, h.options.KeyFile)
 		if err != nil {
 			return err

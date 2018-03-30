@@ -8,7 +8,6 @@ default_conf:
     WEB_LISTEN_ADDRESS: '{{ conf.prometheus.address }}:{{ conf.prometheus.port }}'
     WEB_EXTERNAL_URL: '{{ self_discovered.prometheus.external_uri }}'
     WEB_ROUTE_PREFIX: '{{ conf.prometheus.context_path }}'
-    WEB_ENABLE_HTTPS: '{{ conf.prometheus.enable_https }}'
     WEB_CERTIFICATE_FILE: '{{ ssl.cert_path }}'
     WEB_KEY_FILE: '{{ ssl.pem_path }}'
     WEB_BASIC_USERNAME: '{{ conf.prometheus.basic_username }}'
@@ -125,7 +124,6 @@ default_conf:
     basic_password: "{{ plaintext_secret('basicPassword') }}"
     ca_path: '{{ ssl.ca_path }}'
     context_path: '/prometheus'
-    enable_https: true
     evaluation_interval: 1m
     hostname: '{{ host.hostname }}'
     custom_configs: '{{ exclude }}'

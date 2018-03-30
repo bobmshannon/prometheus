@@ -44,6 +44,7 @@ import (
 	"github.com/prometheus/prometheus/util/httputil"
 	"github.com/prometheus/prometheus/util/stats"
 	tsdbLabels "github.com/prometheus/tsdb/labels"
+	"crypto/subtle"
 )
 
 type status string
@@ -120,9 +121,11 @@ type API struct {
 	config   func() config.Config
 	flagsMap map[string]string
 	ready    func(http.HandlerFunc) http.HandlerFunc
+	auth     func(http.HandlerFunc) http.HandlerFunc
 
-	db          func() *tsdb.DB
-	enableAdmin bool
+	db             func() *tsdb.DB
+	enableAdmin    bool
+	user, password string
 }
 
 // NewAPI returns an initialized API type.
@@ -136,6 +139,8 @@ func NewAPI(
 	readyFunc func(http.HandlerFunc) http.HandlerFunc,
 	db func() *tsdb.DB,
 	enableAdmin bool,
+	user string,
+	password string,
 ) *API {
 	return &API{
 		QueryEngine:           qe,
@@ -145,16 +150,27 @@ func NewAPI(
 		now:         time.Now,
 		config:      configFunc,
 		flagsMap:    flagsMap,
-		ready:       readyFunc,
 		db:          db,
 		enableAdmin: enableAdmin,
+		ready:       readyFunc,
+		user:        user,
+		password:    password,
 	}
 }
 
 // Register the API's endpoints in the given router.
 func (api *API) Register(r *route.Router) {
-	instr := func(name string, f apiFunc) http.HandlerFunc {
+	wrap := func(name string, f apiFunc) http.HandlerFunc {
 		hf := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if api.user != "" && api.password != "" {
+				user, pass, ok := r.BasicAuth()
+				if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(api.user)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(api.password)) != 1 {
+					w.Header().Set("WWW-Authenticate", `Basic realm="Prometheus"`)
+					w.WriteHeader(401)
+					w.Write([]byte("Unauthorised.\n"))
+					return
+				}
+			}
 			setCORS(w)
 			if data, err := f(r); err != nil {
 				respondError(w, err, data)
@@ -169,29 +185,29 @@ func (api *API) Register(r *route.Router) {
 		}))
 	}
 
-	r.Options("/*path", instr("options", api.options))
+	r.Options("/*path", wrap("options", api.options))
 
-	r.Get("/query", instr("query", api.query))
-	r.Post("/query", instr("query", api.query))
-	r.Get("/query_range", instr("query_range", api.queryRange))
-	r.Post("/query_range", instr("query_range", api.queryRange))
+	r.Get("/query", wrap("query", api.query))
+	r.Post("/query", wrap("query", api.query))
+	r.Get("/query_range", wrap("query_range", api.queryRange))
+	r.Post("/query_range", wrap("query_range", api.queryRange))
 
-	r.Get("/label/:name/values", instr("label_values", api.labelValues))
+	r.Get("/label/:name/values", wrap("label_values", api.labelValues))
 
-	r.Get("/series", instr("series", api.series))
-	r.Del("/series", instr("drop_series", api.dropSeries))
+	r.Get("/series", wrap("series", api.series))
+	r.Del("/series", wrap("drop_series", api.dropSeries))
 
-	r.Get("/targets", instr("targets", api.targets))
-	r.Get("/alertmanagers", instr("alertmanagers", api.alertmanagers))
+	r.Get("/targets", wrap("targets", api.targets))
+	r.Get("/alertmanagers", wrap("alertmanagers", api.alertmanagers))
 
-	r.Get("/status/config", instr("config", api.serveConfig))
-	r.Get("/status/flags", instr("flags", api.serveFlags))
+	r.Get("/status/config", wrap("config", api.serveConfig))
+	r.Get("/status/flags", wrap("flags", api.serveFlags))
 	r.Post("/read", api.ready(prometheus.InstrumentHandler("read", http.HandlerFunc(api.remoteRead))))
 
 	// Admin APIs
-	r.Post("/admin/tsdb/delete_series", instr("delete_series", api.deleteSeries))
-	r.Post("/admin/tsdb/clean_tombstones", instr("clean_tombstones", api.cleanTombstones))
-	r.Post("/admin/tsdb/snapshot", instr("snapshot", api.snapshot))
+	r.Post("/admin/tsdb/delete_series", wrap("delete_series", api.deleteSeries))
+	r.Post("/admin/tsdb/clean_tombstones", wrap("clean_tombstones", api.cleanTombstones))
+	r.Post("/admin/tsdb/snapshot", wrap("snapshot", api.snapshot))
 }
 
 type queryData struct {

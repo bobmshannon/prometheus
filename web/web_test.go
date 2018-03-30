@@ -107,6 +107,7 @@ func TestReadyAndHealthy(t *testing.T) {
 		RoutePrefix:    "/",
 		MetricsPath:    "/metrics/",
 		EnableAdminAPI: true,
+		EnablegRPC:     true,
 		TSDB:           func() *libtsdb.DB { return db },
 	}
 
@@ -203,6 +204,7 @@ func TestRoutePrefix(t *testing.T) {
 		RoutePrefix:    "/prometheus",
 		MetricsPath:    "/prometheus/metrics",
 		EnableAdminAPI: true,
+		EnablegRPC:     true,
 		TSDB:           func() *libtsdb.DB { return db },
 	}
 

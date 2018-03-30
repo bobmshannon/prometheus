@@ -149,6 +149,12 @@ func main() {
 	a.Flag("web.key-file", "Path to a PEM encoded key file.").
 		Default("<path>").StringVar(&cfg.web.KeyFile)
 
+	a.Flag("web.basic-username", "Username to use for basic authentication.").
+		Default("").StringVar(&cfg.web.BasicUsername)
+
+	a.Flag("web.basic-password", "Password to use for basic authentication.").
+		Default("").StringVar(&cfg.web.BasicPassword)
+
 	a.Flag("web.console.templates", "Path to the console template directory, available at /consoles.").
 		Default("consoles").StringVar(&cfg.web.ConsoleTemplatesPath)
 

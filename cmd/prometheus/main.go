@@ -141,7 +141,7 @@ func main() {
 		Default("false").BoolVar(&cfg.web.EnableAdminAPI)
 
 	a.Flag("web.enable-https", "Enables HTTPS on all endpoints.").
-		Default("true").BoolVar(&cfg.web.EnableHTTPS)
+		Default("false").BoolVar(&cfg.web.EnableHTTPS)
 
 	a.Flag("web.certificate-file", "Path to a PEM encoded certificate file.").
 		Default("<path>").StringVar(&cfg.web.CertificateFile)

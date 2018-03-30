@@ -122,7 +122,7 @@ default_conf:
     alertmanager_scheme: '{{ discovered.alertmanager-scheme }}'
     alertmanagers: '{{ discovered.all-alertmanagers }}'
     basic_username: 'prometheus'
-    basic_password: '{{ plaintext_secret('basicPassword') }}'
+    basic_password: "{{ plaintext_secret('basicPassword') }}"
     ca_path: '{{ ssl.ca_path }}'
     context_path: '/prometheus'
     enable_https: true

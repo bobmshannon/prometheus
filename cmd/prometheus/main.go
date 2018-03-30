@@ -141,10 +141,10 @@ func main() {
 		Default("false").BoolVar(&cfg.web.EnableAdminAPI)
 
 	a.Flag("web.certificate-file", "Path to a PEM encoded certificate file.").
-		Default("<path>").StringVar(&cfg.web.CertificateFile)
+		Default("").StringVar(&cfg.web.CertificateFile)
 
 	a.Flag("web.key-file", "Path to a PEM encoded key file.").
-		Default("<path>").StringVar(&cfg.web.KeyFile)
+		Default("").StringVar(&cfg.web.KeyFile)
 
 	a.Flag("web.basic-username", "Username to use for basic authentication.").
 		Default("").StringVar(&cfg.web.BasicUsername)

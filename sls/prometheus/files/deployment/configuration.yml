@@ -129,7 +129,7 @@ default_conf:
     custom_configs: '{{ exclude }}'
     custom_scrapes: '{{ exclude }}'
     port: 9090
-    protocol: http
+    protocol: https
     prometheus_metrics: '{{ discovered.prometheus-metrics }}'
     scrape_interval: 30s
     scrape_timeout: 30s
@@ -169,7 +169,7 @@ discovery:
       job_name: prometheus-metrics
       metrics_path: '{{ conf.prometheus.context_path }}/metrics'
       role: prometheus-metrics
-      scheme: '{{ self_discovered.prometheus.scheme }}'
+      scheme: '{{ conf.prometheus.protocol }}'
       targets:
         - '{{ self_discovered.prometheus.external_hostname }}'
       basic_auth:

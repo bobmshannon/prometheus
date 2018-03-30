@@ -16,6 +16,8 @@ package web
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -145,6 +147,9 @@ type Options struct {
 	ConsoleLibrariesPath string
 	EnableLifecycle      bool
 	EnableAdminAPI       bool
+	EnableHTTPS          bool
+	CertificateFile      string
+	KeyFile              string
 }
 
 // New initializes a new web Handler.
@@ -383,7 +388,20 @@ func (h *Handler) Reload() <-chan chan error {
 func (h *Handler) Run(ctx context.Context) error {
 	level.Info(h.logger).Log("msg", "Start listening for connections", "address", h.options.ListenAddress)
 
-	listener, err := net.Listen("tcp", h.options.ListenAddress)
+	var listener net.Listener
+	var err error
+
+	if h.options.EnableHTTPS {
+		c, err := tls.LoadX509KeyPair(h.options.CertificateFile, h.options.KeyFile)
+		if err != nil {
+			return err
+		}
+		listener, err = tls.Listen("tcp", h.options.ListenAddress, &tls.Config{
+			Certificates: []tls.Certificate{c},
+		})
+	} else {
+		listener, err = net.Listen("tcp", h.options.ListenAddress)
+	}
 	if err != nil {
 		return err
 	}

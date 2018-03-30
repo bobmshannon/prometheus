@@ -145,6 +145,7 @@ type Options struct {
 	UserAssetsPath       string
 	ConsoleTemplatesPath string
 	ConsoleLibrariesPath string
+	EnablegRPC           bool
 	EnableLifecycle      bool
 	EnableAdminAPI       bool
 	EnableHTTPS          bool
@@ -200,6 +201,8 @@ func New(logger log.Logger, o *Options) *Handler {
 		h.testReady,
 		h.options.TSDB,
 		h.options.EnableAdminAPI,
+		h.options.BasicUsername,
+		h.options.BasicPassword,
 	)
 
 	if o.RoutePrefix != "/" {
@@ -450,7 +453,7 @@ func (h *Handler) Run(ctx context.Context) error {
 		func() []*url.URL {
 			return h.options.Notifier.Alertmanagers()
 		},
-		h.options.EnableAdminAPI,
+		h.options.EnablegRPC,
 	)
 	av2.RegisterGRPC(grpcSrv)
 

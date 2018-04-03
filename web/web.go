@@ -218,30 +218,34 @@ func New(logger log.Logger, o *Options) *Handler {
 	readyf := h.testReady
 	authf  := h.checkBasicAuth
 
-	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/", authf(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, path.Join(o.ExternalURL.Path, "/graph"), http.StatusFound)
-	})
+	}))
 
-	router.Put("/push", authf(readyf(instrf("push", h.push))))
-	router.Get("/alerts", authf(readyf(instrf("alerts", h.alerts))))
-	router.Get("/graph", authf(readyf(instrf("graph", h.graph))))
-	router.Get("/status", authf(readyf(instrf("status", h.status))))
-	router.Get("/flags", authf(readyf(instrf("flags", h.flags))))
-	router.Get("/config", authf(readyf(instrf("config", h.serveConfig))))
-	router.Get("/rules", authf(readyf(instrf("rules", h.rules))))
-	router.Get("/targets", authf(readyf(instrf("targets", h.targets))))
-	router.Get("/version", authf(readyf(instrf("version", h.version))))
-	router.Get("/service-discovery", authf(readyf(instrf("servicediscovery", h.serviceDiscovery))))
+	wrap := func(f http.HandlerFunc) http.HandlerFunc {
+		return authf(readyf(f))
+	}
+
+	router.Put("/push",wrap(instrf("push", h.push)))
+	router.Get("/alerts", wrap(instrf("alerts", h.alerts)))
+	router.Get("/graph", wrap(instrf("graph", h.graph)))
+	router.Get("/status", wrap(instrf("status", h.status)))
+	router.Get("/flags", wrap(instrf("flags", h.flags)))
+	router.Get("/config", wrap(instrf("config", h.serveConfig)))
+	router.Get("/rules", wrap(instrf("rules", h.rules)))
+	router.Get("/targets", wrap(instrf("targets", h.targets)))
+	router.Get("/version", wrap(instrf("version", h.version)))
+	router.Get("/service-discovery", wrap(instrf("servicediscovery", h.serviceDiscovery)))
 
 	router.Get("/heap", authf(instrf("heap", h.dumpHeap)))
 
 	router.Get("/metrics", authf(prometheus.Handler().ServeHTTP))
 
-	router.Get("/federate", authf(readyf(instrh("federate", httputil.CompressionHandler{
+	router.Get("/federate", wrap(instrh("federate", httputil.CompressionHandler{
 		Handler: http.HandlerFunc(h.federation),
-	}))))
+	})))
 
-	router.Get("/consoles/*filepath", authf(readyf(instrf("consoles", h.consoles))))
+	router.Get("/consoles/*filepath", wrap(instrf("consoles", h.consoles)))
 
 	router.Get("/static/*filepath", authf(instrf("static", h.serveStaticAsset)))
 
@@ -278,10 +282,10 @@ func New(logger log.Logger, o *Options) *Handler {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Prometheus is Healthy.\n")
 	}))
-	router.Get("/-/ready", authf(readyf(func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/-/ready", wrap(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Prometheus is Ready.\n")
-	})))
+	}))
 
 	return h
 }

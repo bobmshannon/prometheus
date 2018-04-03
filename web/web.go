@@ -379,17 +379,17 @@ func (h *Handler) checkBasicAuth(f http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if h.options.BasicUsername == "" && h.options.BasicPassword == "" {
 			f(w, r)
-		}
+		} else {
+			user, pass, ok := r.BasicAuth()
+			if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(h.options.BasicUsername)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(h.options.BasicPassword)) != 1 {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Prometheus"`)
+				w.WriteHeader(401)
+				w.Write([]byte("Unauthorised.\n"))
+				return
+			}
 
-		user, pass, ok := r.BasicAuth()
-		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(h.options.BasicUsername)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(h.options.BasicPassword)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="Prometheus"`)
-			w.WriteHeader(401)
-			w.Write([]byte("Unauthorised.\n"))
-			return
+			f(w, r)
 		}
-
-		f(w, r)
 	}
 }
 

@@ -714,6 +714,12 @@
 			"revisionTime": "2017-02-06T22:16:52Z"
 		},
 		{
+			"checksumSHA1": "E2hIPhL0hi/JZmltjvapnYzEDbI=",
+			"path": "github.com/palantir/pkg/tlsconfig",
+			"revision": "c1dcd5b76f812092d99bf9da7640b88f3697dd74",
+			"revisionTime": "2018-04-04T18:22:50Z"
+		},
+		{
 			"checksumSHA1": "jhWbikPpDRvfqYPOvEbZUXzg7KM=",
 			"origin": "github.com/cockroachdb/cockroach/vendor/github.com/petermattis/goid",
 			"path": "github.com/petermattis/goid",

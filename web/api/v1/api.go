@@ -44,7 +44,6 @@ import (
 	"github.com/prometheus/prometheus/util/httputil"
 	"github.com/prometheus/prometheus/util/stats"
 	tsdbLabels "github.com/prometheus/tsdb/labels"
-	"crypto/subtle"
 )
 
 type status string
@@ -153,32 +152,11 @@ func NewAPI(
 		db:          db,
 		enableAdmin: enableAdmin,
 		ready:       readyFunc,
-		user:        user,
-		password:    password,
-	}
-}
-
-func (api *API) checkBasicAuth(f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if api.user == "" && api.password == "" {
-			f(w, r)
-		} else {
-			user, pass, ok := r.BasicAuth()
-			if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(api.user)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(api.password)) != 1 {
-				w.Header().Set("WWW-Authenticate", `Basic realm="Prometheus"`)
-				w.WriteHeader(401)
-				w.Write([]byte("Unauthorised.\n"))
-				return
-			}
-
-			f(w, r)
-		}
 	}
 }
 
 // Register the API's endpoints in the given router.
 func (api *API) Register(r *route.Router) {
-	authf := api.checkBasicAuth
 	wrap := func(name string, f apiFunc) http.HandlerFunc {
 		hf := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			setCORS(w)
@@ -190,9 +168,9 @@ func (api *API) Register(r *route.Router) {
 				w.WriteHeader(http.StatusNoContent)
 			}
 		})
-		return authf(api.ready(prometheus.InstrumentHandler(name, httputil.CompressionHandler{
+		return api.ready(prometheus.InstrumentHandler(name, httputil.CompressionHandler{
 			Handler: hf,
-		})))
+		}))
 	}
 
 	r.Options("/*path", wrap("options", api.options))
@@ -212,7 +190,7 @@ func (api *API) Register(r *route.Router) {
 
 	r.Get("/status/config", wrap("config", api.serveConfig))
 	r.Get("/status/flags", wrap("flags", api.serveFlags))
-	r.Post("/read", authf(api.ready(prometheus.InstrumentHandler("read", http.HandlerFunc(api.remoteRead)))))
+	r.Post("/read", api.ready(prometheus.InstrumentHandler("read", http.HandlerFunc(api.remoteRead))))
 
 	// Admin APIs
 	r.Post("/admin/tsdb/delete_series", wrap("delete_series", api.deleteSeries))

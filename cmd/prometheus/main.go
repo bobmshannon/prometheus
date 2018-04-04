@@ -153,7 +153,7 @@ func main() {
 		Default("<path>").StringVar(&cfg.web.KeyFile)
 
 	a.Flag("web.ca-file", "Path to CA certificate bundle used for verifying clients.").
-		Default("<path>").StringVar(&cfg.web.KeyFile)
+		Default("<path>").StringVar(&cfg.web.CAFile)
 
 	a.Flag("web.console.templates", "Path to the console template directory, available at /consoles.").
 		Default("consoles").StringVar(&cfg.web.ConsoleTemplatesPath)

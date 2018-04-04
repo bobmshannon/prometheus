@@ -146,7 +146,7 @@ func main() {
 	a.Flag("web.protocol", "Protocol to use. 'http' or 'https'.").
 		Default("https").StringVar(&cfg.web.Protocol)
 
-	a.Flag("web.cert-file", "Path to a PEM encoded certificate file.").
+	a.Flag("web.certificate-file", "Path to a PEM encoded certificate file.").
 		Default("<path>").StringVar(&cfg.web.CertificateFile)
 
 	a.Flag("web.key-file", "Path to a PEM encoded key file.").

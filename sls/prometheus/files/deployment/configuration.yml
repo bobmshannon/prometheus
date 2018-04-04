@@ -212,7 +212,3 @@ managed_files:
   var/conf/host_alerts.yml:
     live-reload: kick
     type: tmpl
-generated_secrets:
-  basicPassword:
-    secret-type: random_string
-    length: 32

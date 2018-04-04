@@ -16,9 +16,9 @@ scrape_configs:
       - targets:
         {{range .static_configs}}{{range .targets}}- {{.}}{{end}}{{end}}
     tls_config:
-      ca_file: {{$.conf.prometheus.ssl.ca_path}}
-      cert_file: {{$.conf.prometheus.ssl.cert_path}}
-      key_file: {{$.conf.prometheus.ssl.pem_path}}
+      ca_file: {{$.conf.prometheus.ca_file}}
+      cert_file: {{$.conf.prometheus.certificate_file}}
+      key_file: {{$.conf.prometheus.key_file}}
   {{end}}{{end}}
   {{if .conf.prometheus.prometheus_metrics}}{{/*
   */}}{{range $.conf.prometheus.prometheus_metrics}}{{/*
@@ -36,9 +36,9 @@ scrape_configs:
         - {{.}}
         {{ end }}
     tls_config:
-      ca_file: {{$.conf.prometheus.ssl.ca_path}}
-      cert_file: {{$.conf.prometheus.ssl.cert_path}}
-      key_file: {{$.conf.prometheus.ssl.pem_path}}
+      ca_file: {{$.conf.prometheus.ca_file}}
+      cert_file: {{$.conf.prometheus.certificate_file}}
+      key_file: {{$.conf.prometheus.key_file}}
   {{end}}{{end}}
 alerting:
   alertmanagers:

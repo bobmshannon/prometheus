@@ -163,9 +163,6 @@ discovery:
       port: '{{ conf.prometheus.port }}'
       role: prometheus
       scheme: '{{ conf.prometheus.protocol }}'
-      basic_auth:
-        username: '{{ conf.prometheus.basic_username }}'
-        password: '{{ conf.prometheus.basic_password }}'
     prometheus-metrics:
       job_name: prometheus-metrics
       metrics_path: '{{ conf.prometheus.context_path }}/metrics'
@@ -173,18 +170,12 @@ discovery:
       scheme: '{{ conf.prometheus.protocol }}'
       targets:
         - '{{ self_discovered.prometheus.external_hostname }}'
-      basic_auth:
-        username: '{{ conf.prometheus.basic_username }}'
-        password: '{{ conf.prometheus.basic_password }}'
     prometheus-push:
       external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}/push'
       port: '{{ self_discovered.prometheus.port }}'
       role: prometheus-push
       scheme: '{{ self_discovered.prometheus.scheme }}'
-      basic_auth:
-        username: '{{ conf.prometheus.basic_username }}'
-        password: '{{ conf.prometheus.basic_password }}'
 managed_files:
   var/conf/logrotate.conf:
     live-reload: kick

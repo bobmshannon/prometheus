@@ -143,17 +143,17 @@ func main() {
 	a.Flag("web.enable-grpc", "Enables the experimental gRPC endpoints.").
 		Default("false").BoolVar(&cfg.web.EnablegRPC)
 
-	a.Flag("web.certificate-file", "Path to a PEM encoded certificate file.").
-		Default("").StringVar(&cfg.web.CertificateFile)
+	a.Flag("web.protocol", "Protocol to use. 'http' or 'https'.").
+		Default("https").StringVar(&cfg.web.Protocol)
+
+	a.Flag("web.cert-file", "Path to a PEM encoded certificate file.").
+		Default("<path>").StringVar(&cfg.web.CertificateFile)
 
 	a.Flag("web.key-file", "Path to a PEM encoded key file.").
-		Default("").StringVar(&cfg.web.KeyFile)
+		Default("<path>").StringVar(&cfg.web.KeyFile)
 
-	a.Flag("web.basic-username", "Username to use for basic authentication.").
-		Default("").StringVar(&cfg.web.BasicUsername)
-
-	a.Flag("web.basic-password", "Password to use for basic authentication.").
-		Default("").StringVar(&cfg.web.BasicPassword)
+	a.Flag("web.ca-file", "Path to CA certificate bundle used for verifying clients.").
+		Default("<path>").StringVar(&cfg.web.KeyFile)
 
 	a.Flag("web.console.templates", "Path to the console template directory, available at /consoles.").
 		Default("consoles").StringVar(&cfg.web.ConsoleTemplatesPath)

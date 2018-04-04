@@ -16,7 +16,7 @@ package web
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -47,6 +47,7 @@ import (
 	"github.com/mwitkow/go-conntrack"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
+	"github.com/palantir/pkg/tlsconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/common/route"
@@ -66,7 +67,7 @@ import (
 	api_v1 "github.com/prometheus/prometheus/web/api/v1"
 	api_v2 "github.com/prometheus/prometheus/web/api/v2"
 	"github.com/prometheus/prometheus/web/ui"
-	"crypto/subtle"
+	"crypto/tls"
 )
 
 var localhostRepresentations = []string{"127.0.0.1", "localhost"}
@@ -149,6 +150,8 @@ type Options struct {
 	EnableLifecycle      bool
 	EnableAdminAPI       bool
 	EnableHTTPS          bool
+	Protocol             string
+	CAFile               string
 	CertificateFile      string
 	KeyFile              string
 	BasicUsername        string
@@ -216,73 +219,68 @@ func New(logger log.Logger, o *Options) *Handler {
 	instrh := prometheus.InstrumentHandler
 	instrf := prometheus.InstrumentHandlerFunc
 	readyf := h.testReady
-	authf  := h.checkBasicAuth
 
-	router.Get("/", authf(func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, path.Join(o.ExternalURL.Path, "/graph"), http.StatusFound)
-	}))
+	})
 
-	wrap := func(f http.HandlerFunc) http.HandlerFunc {
-		return authf(readyf(f))
-	}
+	router.Put("/push", readyf(instrf("push", h.push)))
+	router.Get("/alerts", readyf(instrf("alerts", h.alerts)))
+	router.Get("/graph", readyf(instrf("graph", h.graph)))
+	router.Get("/status", readyf(instrf("status", h.status)))
+	router.Get("/flags", readyf(instrf("flags", h.flags)))
+	router.Get("/config", readyf(instrf("config", h.serveConfig)))
+	router.Get("/rules", readyf(instrf("rules", h.rules)))
+	router.Get("/targets", readyf(instrf("targets", h.targets)))
+	router.Get("/version", readyf(instrf("version", h.version)))
+	router.Get("/service-discovery", readyf(instrf("servicediscovery", h.serviceDiscovery)))
 
-	router.Put("/push",wrap(instrf("push", h.push)))
-	router.Get("/alerts", wrap(instrf("alerts", h.alerts)))
-	router.Get("/graph", wrap(instrf("graph", h.graph)))
-	router.Get("/status", wrap(instrf("status", h.status)))
-	router.Get("/flags", wrap(instrf("flags", h.flags)))
-	router.Get("/config", wrap(instrf("config", h.serveConfig)))
-	router.Get("/rules", wrap(instrf("rules", h.rules)))
-	router.Get("/targets", wrap(instrf("targets", h.targets)))
-	router.Get("/version", wrap(instrf("version", h.version)))
-	router.Get("/service-discovery", wrap(instrf("servicediscovery", h.serviceDiscovery)))
+	router.Get("/heap", instrf("heap", h.dumpHeap))
 
-	router.Get("/heap", authf(instrf("heap", h.dumpHeap)))
+	router.Get("/metrics", prometheus.Handler().ServeHTTP)
 
-	router.Get("/metrics", authf(prometheus.Handler().ServeHTTP))
-
-	router.Get("/federate", wrap(instrh("federate", httputil.CompressionHandler{
+	router.Get("/federate", readyf(instrh("federate", httputil.CompressionHandler{
 		Handler: http.HandlerFunc(h.federation),
 	})))
 
-	router.Get("/consoles/*filepath", wrap(instrf("consoles", h.consoles)))
+	router.Get("/consoles/*filepath", readyf(instrf("consoles", h.consoles)))
 
-	router.Get("/static/*filepath", authf(instrf("static", h.serveStaticAsset)))
+	router.Get("/static/*filepath", instrf("static", h.serveStaticAsset))
 
 	if o.UserAssetsPath != "" {
-		router.Get("/user/*filepath", authf(instrf("user", route.FileServe(o.UserAssetsPath))))
+		router.Get("/user/*filepath", instrf("user", route.FileServe(o.UserAssetsPath)))
 	}
 
 	if o.EnableLifecycle {
-		router.Post("/-/quit", authf(h.quit))
-		router.Post("/-/reload", authf(h.reload))
+		router.Post("/-/quit", h.quit)
+		router.Post("/-/reload", h.reload)
 	} else {
-		router.Post("/-/quit", authf(func(w http.ResponseWriter, _ *http.Request) {
+		router.Post("/-/quit", func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("Lifecycle APIs are not enabled"))
-		}))
-		router.Post("/-/reload", authf(func(w http.ResponseWriter, _ *http.Request) {
+		})
+		router.Post("/-/reload", func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("Lifecycle APIs are not enabled"))
-		}))
+		})
 	}
-	router.Get("/-/quit", authf(func(w http.ResponseWriter, _ *http.Request) {
+	router.Get("/-/quit", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Write([]byte("Only POST requests allowed"))
-	}))
-	router.Get("/-/reload", authf(func(w http.ResponseWriter, _ *http.Request) {
+	})
+	router.Get("/-/reload", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Write([]byte("Only POST requests allowed"))
-	}))
+	})
 
-	router.Get("/debug/*subpath", authf(serveDebug))
-	router.Post("/debug/*subpath", authf(serveDebug))
+	router.Get("/debug/*subpath", serveDebug)
+	router.Post("/debug/*subpath", serveDebug)
 
-	router.Get("/-/healthy", authf(func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/-/healthy", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Prometheus is Healthy.\n")
-	}))
-	router.Get("/-/ready", wrap(func(w http.ResponseWriter, r *http.Request) {
+	})
+	router.Get("/-/ready", readyf(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Prometheus is Ready.\n")
 	}))
@@ -379,24 +377,6 @@ func (h *Handler) testReady(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (h *Handler) checkBasicAuth(f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if h.options.BasicUsername == "" && h.options.BasicPassword == "" {
-			f(w, r)
-		} else {
-			user, pass, ok := r.BasicAuth()
-			if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(h.options.BasicUsername)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(h.options.BasicPassword)) != 1 {
-				w.Header().Set("WWW-Authenticate", `Basic realm="Prometheus"`)
-				w.WriteHeader(401)
-				w.Write([]byte("Unauthorised.\n"))
-				return
-			}
-
-			f(w, r)
-		}
-	}
-}
-
 // Checks if server is ready, calls f if it is, returns 503 if it is not.
 func (h *Handler) testReadyHandler(f http.Handler) http.HandlerFunc {
 	return h.testReady(f.ServeHTTP)
@@ -419,20 +399,25 @@ func (h *Handler) Run(ctx context.Context) error {
 	var listener net.Listener
 	var err error
 
-	if h.options.CertificateFile != "" && h.options.KeyFile != "" {
-		c, err := tls.LoadX509KeyPair(h.options.CertificateFile, h.options.KeyFile)
+	if h.options.Protocol == "https" {
+		tlsConfig, err := tlsconfig.NewServerConfig(
+			tlsconfig.TLSCertFromFiles(h.options.CertificateFile, h.options.KeyFile),
+			tlsconfig.ServerClientCAFiles(h.options.CAFile),
+			tlsconfig.ServerClientAuthType(tls.RequireAndVerifyClientCert),
+		)
 		if err != nil {
 			return err
 		}
-		listener, err = tls.Listen("tcp", h.options.ListenAddress, &tls.Config{
-			Certificates: []tls.Certificate{c},
-		})
-	} else {
+		listener, err = tls.Listen("tcp", h.options.ListenAddress, tlsConfig)
+		if err != nil {
+			return err
+		}
+	} else if h.options.Protocol == "http" {
 		listener, err = net.Listen("tcp", h.options.ListenAddress)
+	} else {
+		return errors.New("Unsupported protocol specified.")
 	}
-	if err != nil {
-		return err
-	}
+
 	listener = netutil.LimitListener(listener, h.options.MaxConnections)
 
 	// Monitor incoming connections with conntrack.

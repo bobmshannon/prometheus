@@ -21,4 +21,6 @@ Prometheus' main distinguishing features as compared to other monitoring systems
 
 ## About this repository
 
-This repository is a fork that includes an endpoint for pushing time-series data directly to Prometheus.
+This repository is a fork that includes:
+- an endpoint for pushing time-series data directly to Prometheus.
+- two way SSL support on the server listener.

@@ -118,7 +118,7 @@ default_conf:
     rule_files:
       - '{{ service_home }}/var/conf/host_alerts.yml'
       - '{{ service_home }}/var/conf/baseline_alerts.yml'
-    address: 127.0.0.1
+    address: '{{ host.hostname }}'
     alertmanager_scheme: '{{ discovered.alertmanager-scheme }}'
     alertmanagers: '{{ discovered.all-alertmanagers }}'
     context_path: '/prometheus'
@@ -138,11 +138,11 @@ default_conf:
 discovery:
   consumes:
     alertmanager-scheme:
-      role: prometheus-alertmanager
+      role: alertmanager
       select: scheme
     all-alertmanagers:
       all: true
-      role: prometheus-alertmanager
+      role: alertmanager
       select: endpoint
     metrics-agent:
       all: false
@@ -163,13 +163,19 @@ discovery:
       port: '{{ conf.prometheus.port }}'
       role: prometheus
       scheme: '{{ conf.prometheus.protocol }}'
+    prometheus-api:
+      external_hostname: '{{ conf.external_hostname }}'
+      path: '{{ conf.prometheus.context_path }}/api/v1'
+      port: '{{ conf.prometheus.port }}'
+      role: prometheus-api
+      scheme: '{{ conf.prometheus.protocol }}'
     prometheus-metrics:
       job_name: prometheus-metrics
       metrics_path: '{{ conf.prometheus.context_path }}/metrics'
       role: prometheus-metrics
       scheme: '{{ conf.prometheus.protocol }}'
       targets:
-        - '{{ self_discovered.prometheus.external_hostname }}'
+        - '{{ self_discovered.prometheus.hostname }}:{{ self_discovered.prometheus.port }}'
     prometheus-push:
       external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}/push'

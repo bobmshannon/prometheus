@@ -37,6 +37,9 @@ default_conf:
       - daily
       - rotate 7
       - size 1024M
+  oauth:
+    client_id: '{{stack_name}}-{{service_name}}'
+    client_secret: "{{plaintext_secret('oauth-secret')}}"
   baseline_alerts:
     groups:
     # The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
@@ -176,6 +179,9 @@ discovery:
       port: '{{ conf.prometheus.port }}'
       role: prometheus
       scheme: '{{ conf.prometheus.protocol }}'
+      multipass-creds:
+        id: '{{conf.oauth.client_id}}'
+        secret: '{{conf.oauth.client_secret}}'
     prometheus-api:
       external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}/api/v1'
@@ -195,6 +201,15 @@ discovery:
       port: '{{ self_discovered.prometheus.port }}'
       role: prometheus-push
       scheme: '{{ self_discovered.prometheus.scheme }}'
+    multipass-oauth-client:
+      client:
+        authorizedGrantTypes:
+          - authorization_code
+        id: '{{conf.oauth.client_id}}'
+        redirectUris:
+          - '{{ self_discovered.rulemanager.external_uri }}'
+        secret: '{{conf.oauth.client_secret}}'
+      role: multipass-oauth-client
 managed_files:
   var/conf/logrotate.conf:
     live-reload: kick
@@ -209,3 +224,7 @@ managed_files:
   var/conf/host_alerts.yml:
     live-reload: kick
     type: tmpl
+generated_secrets:
+  oauth-secret:
+    length: 24
+    secret-type: random_string

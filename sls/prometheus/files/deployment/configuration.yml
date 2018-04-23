@@ -197,7 +197,7 @@ discovery:
           - authorization_code
         id: '{{conf.oauth.client_id}}'
         redirectUris:
-          - '{{ self_discovered.rulemanager.external_uri }}'
+          - '{{ self_discovered.prometheus.external_uri }}'
         secret: '{{conf.oauth.client_secret}}'
       role: multipass-oauth-client
 managed_files:

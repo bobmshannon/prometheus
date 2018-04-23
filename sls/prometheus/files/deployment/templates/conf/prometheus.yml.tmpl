@@ -46,6 +46,7 @@ alerting:
       path_prefix: {{ .conf.prometheus.alertmanager_path }}
       static_configs:
         - targets:
-          {{range .conf.prometheus.alertmanagers}}- {{.}}
-          {{end}}
+            {{range .conf.prometheus.alertmanagers}}- {{.}}
+            {{end}}
+      path_prefix: {{ .conf.prometheus.alertmanager_path }}
 {{if .conf.prometheus.custom_configs}}{{.conf.prometheus.custom_configs}}{{end}}

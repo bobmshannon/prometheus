@@ -1,0 +1,16 @@
+behavior:
+  author_may_approve: false
+  invalidate_approvals_on_push: true
+  additional_approval_texts:
+    - ":lgtm:"
+    - ":lgtm_strong:"
+  additional_disapproval_texts:
+    - ":lgtm_cancel:"
+approve:
+  - type: "team"
+    name: ["SRX/Haruspex"]
+    count: 1
+disapprove:
+  - type: "organization"
+    name: ["SRX"]
+    count: 1

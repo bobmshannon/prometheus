@@ -13,4 +13,4 @@ approve:
 disapprove:
   - type: "organization"
     name: ["SRX"]
-    count: 1
+    count: 3

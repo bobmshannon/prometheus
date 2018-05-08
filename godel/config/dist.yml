@@ -18,9 +18,15 @@ products:
           manifest-extensions:
             no-stop: true
             restart-cron: true
-            product-dependencies: []
+            product-dependencies: 
+              - product-group: com.palantir.sls
+                product-name: logrotate
+                minimum-version: 3.10.0
+                maximum-version: 3.11.x
+                recommended-version: 3.11.0
             upgrade-strategy: rolling
             quorum-requirement: any
+          init-sh-template-file: sls/prometheus/files/service/bin/init.sh
     docker:
     - repository: srx/prometheus/prometheus
       tag: snapshot

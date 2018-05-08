@@ -5,8 +5,6 @@
     "product-name": @productName@,
     "product-version": @productVersion@,
     "extensions": {
-        "product-dependencies": [
-
-        ]
+        "product-dependencies": []
     }
 }

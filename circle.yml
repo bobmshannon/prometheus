@@ -64,7 +64,7 @@ deployment:
           --password "$ARTIFACTORY_PASSWORD"
   snapshot:
     branch:
-    - /.*/
+    - /^(?!master).*$/
     owner: SRX
     commands:
     - |

@@ -109,6 +109,7 @@ default_conf:
     rule_files:
       - '{{ service_home }}/var/conf/host_alerts.yml'
       - '{{ service_home }}/var/conf/baseline_alerts.yml'
+      - '{{ discovered.rulemanager-alert-rules-file }}'
     address: '{{ host.hostname }}'
     alertmanager_scheme: '{{ discovered.alertmanager-scheme }}'
     alertmanagers: '{{ discovered.all-alertmanagers }}'
@@ -150,6 +151,9 @@ discovery:
       all: true
       role: prometheus-alerts
       stack: '*'
+    rulemanager-alert-rules-file:
+      role: rulemanager
+      select: alert_rules_file
   produces:
     prometheus:
       external_hostname: '{{ conf.external_hostname }}'

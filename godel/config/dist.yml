@@ -21,9 +21,9 @@ products:
             product-dependencies: 
               - product-group: com.palantir.sls
                 product-name: logrotate
-                minimum-version: 3.10.0
-                maximum-version: 3.11.x
-                recommended-version: 3.11.0
+                minimum-version: 3.11.0-0.0.4
+                maximum-version: 3.11.0-0.1.3
+                recommended-version: 3.11.0-0.1.3
             upgrade-strategy: rolling
             quorum-requirement: any
           init-sh-template-file: sls/prometheus/files/service/bin/init.sh

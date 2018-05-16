@@ -111,6 +111,7 @@ default_conf:
       - '{{ service_home }}/var/conf/baseline_alerts.yml'
       - '{{ discovered.rulemanager-alert-rules-file }}'
     address: '{{ host.hostname }}'
+    alertmanager_path: '{{ discovered.alertmanager-path }}'
     alertmanager_scheme: '{{ discovered.alertmanager-scheme }}'
     alertmanagers: '{{ discovered.all-alertmanagers }}'
     context_path: '/prometheus'

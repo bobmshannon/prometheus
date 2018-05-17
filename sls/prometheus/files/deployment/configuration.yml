@@ -172,7 +172,7 @@ discovery:
       role: prometheus-api
       scheme: '{{ conf.prometheus.protocol }}'
     prometheus-metrics:
-      job_name: prometheus-metrics
+      job_name: prometheus
       metrics_path: '{{ conf.prometheus.context_path }}/metrics'
       port: '{{ conf.prometheus.port }}'
       role: prometheus-metrics

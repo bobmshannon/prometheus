@@ -1,0 +1,87 @@
+{{ if .conf.monitored_hosts -}}
+groups:
+- name: caelumd.rules
+  rules:
+  {{ range .conf.monitored_hosts -}}
+  # Page if {{ . }} is unhealthy or no longer pushing metrics.
+  - alert: HostNoData ({{ . }})
+    expr: absent(system:uptime{host="{{ . }}"}) >= 1
+    for: 10m
+    labels:
+       severity: p0
+    annotations:
+      description: Host {{ . }} has stopped reporting metrics. Is the host unhealthy or the metrics agent otherwise not running?
+      summary: Host {{ . }} has stopped reporting metrics
+  {{ end -}}
+  - alert: SystemHighCPUUtilization
+    expr: 100 - avg_over_time(system:core_idle{core="cpu-total"}[10m]) - avg_over_time(system:core_iowait{core="cpu-total"}[10m]) >= 95
+    for: 10m
+    labels:
+       severity: p1
+    annotations:
+      summary: "{{`CPU usage on host {{ $labels.host }} >= 95% for extended period`}}"
+      description: "{{`CPU usage on host {{ $labels.host }} has been {{ $value }}% utilized on average over the last 10 minutes. A saturated CPU can cause application and overall system performance issues primarily through increased run queue service times.`}}"
+  # Page if disk usage is very high.
+  - alert: SystemHighDiskUsage
+    expr: system:disk_used_percent{path!="/media"} >= 95
+    for: 10m
+    labels:
+      severity: p0
+    annotations:
+      summary: "{{`Disk {{ $labels.path }} on host {{ $labels.host }} is running out of space`}}"
+      description: "{{`The disk {{ $labels.path }} on host {{ $labels.host }} is currently at {{ $value }}% usage and is at risk of running out of space soon.`}}"
+  # Page if the disk is predicted to fill up within 4 hours.
+  - alert: SystemDiskWillFillIn4Hours
+    expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 60 * 60 * 4) >= 100
+    for: 10m
+    labels:
+      severity: p0
+    annotations:
+      summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 4 hours on {{ $labels.host }}`}}"
+      description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
+  # Alert if the disk is predicted to fill up within 2 weeks.
+  - alert: SystemDiskWillFillIn2Weeks
+    expr: predict_linear(system:disk_used_percent{path!~"/media|/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
+    for: 10m
+    labels:
+      severity: p1
+    annotations:
+      summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 2 weeks on {{ $labels.host }}`}}"
+      description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 2 weeks.`}}"
+  # Alert if there is a large number of inodes being used.
+  - alert: SystemHighInodeUsage
+    expr: 100*system:fs_inodes_used{fstype=~"(ext.|xfs)"}/system:fs_inodes_total{fstype=~"(ext.|xfs)"} >= 80
+    for: 10m
+    labels:
+      severity: p1
+    annotations:
+      summary: "{{`High inodes usage in filesystem {{ $labels.path }} on host {{ $labels.host }}`}}"
+      description: "{{`{{ $value }}% of inodes have been exhausted in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
+  # Alert if a system is experiencing memory pressure.
+  - alert: SystemMemoryPressure
+    expr: min_over_time(system:mem_available_percent{}[5m]) <= 10
+    for: 10m
+    labels:
+      severity: p1
+    annotations:
+      summary: "{{`Memory pressure on host {{ $labels.host }}`}}"
+      description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.host }}. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
+  # Alert if a system is dropping packets.
+  - alert: SystemDroppedPackets
+    expr: 100*(increase(system:net_drop_in{}[5m])+increase(system:net_drop_out{}[5m])+increase(system:net_packets_in_error{}[5m])+increase(system:net_packets_out_error{}[5m])) / (increase(system:net_packets_in_count{}[5m])+increase(system:net_packets_in_count{}[5m])) >= 1
+    for: 10m
+    labels:
+      severity: p1
+    annotations:
+      summary: "{{`Packets being dropped on host {{ $labels.host }}`}}"
+      description: "{{`The 5 minute dropped packet rate is {{ $value }}% on {{ $labels.interface }} on host {{ $labels.host }}.`}}"
+  # Alert if a system has a large number of zombie processes.
+  - alert: SystemZombieProcesses
+    expr: system:processes_zombies > 500
+    for: 10m
+    labels:
+      severity: p1
+    annotations:
+      summary: "{{`Zombie processes on host {{ $labels.host }}`}}"
+      description: "{{`There are {{ $value }} zombie processes running on host {{ $labels.host }}. Zombie processes are a resource leak that can cause PID pool exhaustion on the system. These processes are typically caused by a bug in the parent process.`}}"
+{{ end -}}

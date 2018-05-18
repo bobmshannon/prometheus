@@ -15,100 +15,143 @@ default_conf:
   oauth:
     client_id: '{{stack_name}}-{{service_name}}'
     client_secret: "{{plaintext_secret('oauth-secret')}}"
-  baseline_alerts:
+  baseline_rules:
     groups:
-    # The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
+    ##
+    ## The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
+    ##
     - name: sls.rules
       rules: []
-    # The set of system baseline alerting rules evaluated by Prometheus.
-    - name: system.rules
+    ##
+    ## The set of system baseline rules evaluated by Prometheus.
+    ##
+    - name: host.rules
       rules:
-      # Alert if an instance CPU is >=95% utilized on average for 10 minutes.
-      - alert: SystemHighCPUUtilization
-        expr: 100 - avg_over_time(system:core_idle{core="cpu-total"}[10m]) - avg_over_time(system:core_iowait{core="cpu-total"}[10m]) >= 95
-        for: 10m
+      ##
+      ## Recording rules that pre-compute frequently needed and computationally expensive expressions.
+      ##
+      # Active CPU usage percent (100-%idle)
+      - record: node_cpu_active_usage_percent
+        expr: 100-irate(node_cpu_seconds_total{job="node",mode="idle"}[5m])*100
+      # IOWait CPU usage percent
+      - record: node_cpu_iowait_usage_percent
+        expr: irate(node_cpu_seconds_total{job="node",mode="iowait"}[5m])*100
+      # System CPU usage percent
+      - record: node_cpu_system_usage_percent
+        expr: irate(node_cpu_seconds_total{job="node",mode="system"}[5m])*100
+      # User CPU usage percent
+      - record: node_cpu_user_usage_percent
+        expr: irate(node_cpu_seconds_total{job="node",mode="user"}[5m])*100
+      # Memory percent available for application use
+      - record: node_memory_available_percent
+        expr: 100*node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes
+      # Filesystem space usage percent
+      - record: node_filesystem_usage_percent
+        expr: 100*(1-node_filesystem_avail_bytes{mountpoint!="/media"}/node_filesystem_size_bytes{mountpoint!="/media"})
+      # System uptime in days
+      - record: node_uptime_days
+        expr: (time() - node_boot_time_seconds) / (24*60*60)
+      # File handles usage percent
+      - record: node_filefd_usage_percent
+        expr: 100*node_filefd_allocated/node_filefd_maximum
+      ##
+      ## Alert rules that monitor the health of a host using metrics exported by Node Exporter.
+      ##
+      # Page if a host is down and not responding to scrapes.
+      - alert: HostDown
+        expr: up{job="node"} == 0
+        for: 5m
         labels:
-           severity: critical
+          severity: p0
         annotations:
-          summary: "{{`CPU usage on host {{ $labels.host }} >= 95% for extended period`}}"
-          description: "{{`CPU usage on host {{ $labels.host }} has been {{ $value }}% utilized on average over the last 10 minutes. A saturated CPU can cause application and overall system performance issues primarily through increased run queue service times.`}}"
+          description: "{{`Haruspex failed to scrape {{ $labels.instance }} for more than 5m. This indicates that the host is likely down or in an unhealthy state.`}}"
+          summary: "{{`Host {{ $labels.instance }} is down`}}"
+      # Page if a host is flapping between up and down states.
+      - alert: HostFlapping
+        expr: changes(up{job="node"}[1h]) > 5
+        labels:
+          severity: p0
+        annotations:
+          description: "{{`Availablility status of {{ $labels.instance }} changed {{ $value }} times over the last 1 hour. This indicates that the host is likely in an unhealthy state.`}}"
+          summary: "{{`Host {{ $labels.instance }} is flapping`}}"
       # Page if disk usage is very high.
-      - alert: SystemHighDiskUsage
-        expr: system:disk_used_percent{path!="/media"} >= 95
+      - alert: HostHighDiskUsage
+        expr: node_filesystem_usage_percent >= 95
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`Filesystem mounted at {{ $labels.mountpoint }} on host {{ $labels.instance }} is running out of space`}}"
+          description: "{{`The filesystem mounted at {{ $labels.mountpoint }} and backed by the {{ $labels.device }} device is currently at {{ $value }}% usage and is at risk of running out of space soon.`}}"
+      # Page if the disk is predicted to fill up in 4 hours.
+      - alert: HostDiskWillFillIn4Hours
+        expr: predict_linear(node_filesystem_usage_percent[1h], 60 * 60 * 4) >= 100
         for: 10m
         labels:
-          severity: page
+          severity: p0
         annotations:
-          summary: "{{`Disk {{ $labels.path }} on host {{ $labels.host }} is running out of space`}}"
-          description: "{{`The disk {{ $labels.path }} on host {{ $labels.host }} is currently at {{ $value }}% usage and is at risk of running out of space soon.`}}"
-      # Page if the disk is predicted to fill up within 4 hours.
-      - alert: SystemDiskWillFillIn4Hours
-        expr: predict_linear(system:disk_used_percent{path!="/media"}[1h], 60 * 60 * 4) >= 100
+          description: "{{`At current rate of usage the filesystem {{ $labels.mountpoint }} on host {{ $labels.instance }} is predicted to fill up within the next 4 hours.`}}"
+          summary: "{{`Filesystem mounted at {{ $labels.mountpoint }} is predicted to fill up within the next 4 hours on {{ $labels.instance }}`}}"
+      # Alert if the disk is predicted to fill up in 2 weeks.
+      - alert: HostDiskWillFillIn2Weeks
+        expr: predict_linear(node_filesystem_usage_percent{path!~"/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
         for: 10m
         labels:
-          severity: page
+          severity: p1
         annotations:
-          summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 4 hours on {{ $labels.host }}`}}"
-          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 4 hours.`}}"
-      # Page if the disk is predicted to fill up within 2 weeks.
-      - alert: SystemDiskWillFillIn2Weeks
-        expr: predict_linear(system:disk_used_percent{path!~"/media|/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
+          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.instance }} is predicted to fill up within the next 2 weeks.`}}"
+          summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 2 weeks on {{ $labels.instance }}`}}"
+      # Page if the host is experiencing memory pressure.
+      - alert: HostMemoryPressure
+        expr: min_over_time(node_memory_available_percent{}[5m]) <= 10
         for: 10m
         labels:
-          severity: warning
+          severity: p0
         annotations:
-          summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 2 weeks on {{ $labels.host }}`}}"
-          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.host }} is predicted to fill up within the next 2 weeks.`}}"
-      # Alert if there is a large number of inodes being used.
-      - alert: SystemHighInodeUsage
-        expr: 100*system:fs_inodes_used{fstype=~"(ext.|xfs)"}/system:fs_inodes_total{fstype=~"(ext.|xfs)"} >= 80
+          summary: "{{`Memory pressure on host {{ $labels.instance }}`}}"
+          description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.host }}. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer and degraded performance from active pages being paged out from main memory to disk if a swap device is configured.`}}"
+      # Page if the host has a low amount of entropy.
+      - alert: HostLowEntropy
+        expr: avg_over_time(node_entropy_available_bits{}[10m]) <= 1024
         for: 10m
         labels:
-          severity: critical
+          severity: p0
         annotations:
-          summary: "{{`High inodes usage in filesystem {{ $labels.path }} on host {{ $labels.host }}`}}"
-          description: "{{`{{ $value }}% of inodes have been exhausted in the filesystem {{ $labels.path }} on host {{ $labels.host }}.`}}"
-      # Alert if a system is experiencing memory pressure.
-      - alert: SystemMemoryPressure
-        expr: min_over_time(system:mem_available_percent{}[5m]) <= 10
-        for: 10m
-        labels:
-          severity: critical
-        annotations:
-          summary: "{{`Memory pressure on host {{ $labels.host }}`}}"
-          description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.host }}. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer.`}}"
-      # Alert if a system is dropping packets.
-      - alert: SystemDroppedPackets
-        expr: 100*(increase(system:net_drop_in{}[5m])+increase(system:net_drop_out{}[5m])+increase(system:net_packets_in_error{}[5m])+increase(system:net_packets_out_error{}[5m])) / (increase(system:net_packets_in_count{}[5m])+increase(system:net_packets_in_count{}[5m])) >= 1
-        for: 10m
-        labels:
-          severity: critical
-        annotations:
-          summary: "{{`Packets being dropped on host {{ $labels.host }}`}}"
-          description: "{{`The 5 minute dropped packet rate is {{ $value }}% on {{ $labels.interface }} on host {{ $labels.host }}.`}}"
-      # Alert if a system has a large number of zombie processes.
-      - alert: SystemZombieProcesses
-        expr: system:processes_zombies > 500
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "{{`Zombie processes on host {{ $labels.host }}`}}"
-          description: "{{`There are {{ $value }} zombie processes running on host {{ $labels.host }}. Zombie processes are a resource leak that can cause PID pool exhaustion on the system. These processes are typically caused by a bug in the parent process.`}}"
-      # Alert if a system has a low amount of entropy.
-      - alert: SystemLowEntropy
-        expr: avg_over_time(system:entropy_available{}[10m]) <= 1024
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "{{`Low entropy on host {{ $labels.host }}`}}"
+          summary: "{{`Low entropy on host {{ $labels.instance }}`}}"
           description: "{{`The average number of bits available in the entropy pool over the last 10 minutes is {{ $value }} which is very low.`}}"
+      # Alert if the host has not been rebooted in a long time.
+      - alert: HostNeverRebooted
+        expr: node_uptime_days > 180
+        labels:
+          severity: p2
+        annotations:
+          summary: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days`}}"
+          description: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days which likely indicates that the currently installed and running kernel is out of date.`}}"
+      # Page if the number of open files is very high and approaching the system limit.
+      - alert: HostOpenFilesLimit
+        expr: node_filefd_usage_percent > 95
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`File handles on {{ $labels.instance }} depleted`}}"
+          description: "{{`File handles usage on {{ $labels.instance }} is currently at {{ $value }}% which is at or near depletion.`}}"
+      # Page if the open files limit will be depleted within the next 4 hours.
+      - alert: HostOpenFilesDepletedIn4Hours
+        expr: predict_linear(node_filefd_usage_percent[1h], 60 * 60 * 4) >= 100
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`File handles on {{ $labels.instance }} predicted to be depleted in 4 hours`}}"
+          description: "{{`At current rate of usage the pool of available file handles on host {{ $labels.instance }} is predicted to be depleted within the next 4 hours.`}}"
+  # Optionally discover a list of monitored hosts through Skylab service discovery.
+  # If results are discovered, a default set of system baseline alerts are generated
+  # using metrics that are pushed into Haruspex by a palantir metrics agent such as Caelumd.
+  # In most cases this option is unnecessary and should only be used if an environment
+  # is unable to deploy and use node exporter for system level monitoring.
   monitored_hosts: '{{ discovered.metrics-agent.hostnames }}'
   prometheus:
     rule_files:
-      - '{{ service_home }}/var/conf/host_alerts.yml'
-      - '{{ service_home }}/var/conf/baseline_alerts.yml'
+      - '{{ service_home }}/var/conf/caelumd_alerts.yml'
+      - '{{ service_home }}/var/conf/baseline_rules.yml'
       - '{{ discovered.rulemanager-alert-rules-file }}'
     address: '{{ host.hostname }}'
     alertmanager_path: '{{ discovered.alertmanager-path }}'
@@ -206,11 +249,11 @@ managed_files:
   var/conf/prometheus.yml:
     live-reload: kick
     type: tmpl
-  var/conf/baseline_alerts.yml:
+  var/conf/baseline_rules.yml:
     live-reload: kick
-    content: baseline_alerts
+    content: baseline_rules
     type: yaml
-  var/conf/host_alerts.yml:
+  var/conf/caelumd_alerts.yml:
     live-reload: kick
     type: tmpl
 generated_secrets:

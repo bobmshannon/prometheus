@@ -15,8 +15,152 @@ default_conf:
   oauth:
     client_id: '{{stack_name}}-{{service_name}}'
     client_secret: "{{plaintext_secret('oauth-secret')}}"
+  user_defined_rules:
+    groups: []
   baseline_rules:
     groups:
+    ##
+    ## Rules that evaluate the health of Prometheus.
+    ##
+    - name: prometheus.rules
+      rules:
+      ## Alert if live-reloading the Prometheus configuration failed.
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`The last configuration reload of Prometheus ({{ $label.instance }}) failed. This indicates that the configuration file on disk is invalid and that Prometheus will fail to start successfully if restarted.`}}"
+          summary: "{{`Live-reload of Prometheus configuration failed`}}"
+      ## Alert if the Prometheus notification queue is running full.
+      - alert: PrometheusNotificationQueueRunningFull
+        expr: predict_linear(prometheus_notifications_queue_length[5m], 60 * 30) > prometheus_notifications_queue_capacity
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`The Prometheus alert notification queue is running full for {{ $labels.instance }}`}}"
+          summary: "Prometheus alert notification queue is running full"
+      ## Alert if there are errors while sending alerts to Alertmanager.
+      - alert: PrometheusErrorSendingAlerts
+        expr: rate(prometheus_notifications_errors_total[5m]) / rate(prometheus_notifications_sent_total[5m]) > 0.01
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`Errors while sending alerts from Prometheus ({{ $labels.instance }}) to Alertmanager {{$labels.Alertmanager}}`}}"
+          summary: "Errors while sending alert from Prometheus"
+          alertmanager: "{{`{{$labels.Alertmanager}}`}}"
+      ## Page if there is an excessively high number of errors while sending alerts to Alertmanager.
+      - alert: PrometheusErrorSendingAlerts
+        expr: rate(prometheus_notifications_errors_total[5m]) / rate(prometheus_notifications_sent_total[5m]) > 0.03
+        for: 10m
+        labels:
+          severity: p0
+        annotations:
+          description: "{{`Errors while sending alerts from Prometheus ({{ $labels.instance }}) to Alertmanager {{$labels.Alertmanager}}`}}"
+          summary: "Errors while sending alerts from Prometheus"
+      ## Alert if Prometheus is not connected to any Alertmanagers.
+      - alert: PrometheusNotConnectedToAlertmanagers
+        expr: prometheus_notifications_alertmanagers_discovered < 1
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`Prometheus ({{ $labels.instance }}) is not connected to any Alertmanagers`}}"
+          summary: "Prometheus is not connected to any Alertmanagers"
+      ## Alert if there TSDB reload failures.
+      - alert: PrometheusTSDBReloadsFailing
+        expr: increase(prometheus_tsdb_reloads_failures_total[2h]) > 0
+        for: 12h
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`{{ $labels.job }} at {{ $labels.instance }} had {{ $value | humanize }} reload failures over the last two hours.`}}"
+          summary: "Prometheus has issues reloading data blocks from disk"
+      ## Alert if there are TSDB compaction failures.
+      - alert: PrometheusTSDBCompactionsFailing
+        expr: increase(prometheus_tsdb_compactions_failed_total[2h]) > 0
+        for: 12h
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`{{ $labels.job }} at {{ $labels.instance }} had {{ $value | humanize }} compaction failures over the last two hours.`}}"
+          summary: "Prometheus has issues compacting sample blocks"
+      ## Alert if the Prometheus WAL is corrupted.
+      - alert: PrometheusTSDBWALCorruptions
+        expr: prometheus_tsdb_wal_corruptions_total > 0
+        for: 4h
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`{{$labels.job}} at {{$labels.instance}} has a corrupted write-ahead log (WAL).`}}"
+          summary: "Prometheus write-ahead log is corrupted"
+      ## Alert if Prometheus is not ingesting any samples.
+      - alert: PrometheusNotIngestingSamples
+        expr: rate(prometheus_tsdb_head_samples_appended_total[5m]) <= 0
+        for: 10m
+        labels:
+          severity: p0
+        annotations:
+          description: "{{`Prometheus ({{ $labels.instance }} isn't ingesting samples.`}}"
+          summary: "Prometheus isn't ingesting samples"
+      ## Alert if Prometheus is ingesting duplicate samples.
+      - alert: PrometheusTargetScrapesDuplicate
+        expr: increase(prometheus_target_scrapes_sample_duplicate_timestamp_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`Prometheus ({{ $labels.instance }}) has many samples rejected due to duplicate timestamps but different values.`}}"
+          summary: "Prometheus has many samples rejected"
+    ##
+    ## Rules that evaluate the health of Alertmanager.
+    ##
+    - name: alertmanager.rules
+      rules:
+      # Alert if Alertmanager is down.
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: Prometheus failed to scrape Alertmanager which indicates that it is down or in an unhealthy state.
+          summary: Alertmanager down or missing
+      # Alert if live-reloading the Alertmanager configuration failed.
+      - alert: AlertmanagerConfigReloadFailed
+        expr: alertmanager_config_last_reload_successful == 0
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`Reloading Alertmanager's configuration has failed for {{ $labels.instance }}.`}}"
+          summary: "Alertmanager's configuration reload failed"
+    ##
+    ## Rules that evaluate the health of the Sink.
+    ##
+    - name: sink.rules
+      rules:
+      # Alert if the sink stops processing metrics.
+      - alert: SinkNotIngestingMetrics
+        expr: irate(haruspex_sink_metrics_processed:count{}[5m]) == 0
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`The Sink installed on {{ $labels.host }} has stopped ingesting {{ $labels.input }} metrics. This indicates that metrics agents have stopped sending telemetry, or that the Sink is in an unhealthy state.`}}"
+          summary: "{{`Sink not ingesting {{ labels.input }} metrics`}}"
+      # Alert if the sink stops emitting telemetry.
+      - alert: SinkNoData
+        expr: absent(haruspex_sink_metrics_processed:count) == 1
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`The Sink installed on {{ $labels.host }} has stopped emitting metrics. This indicates that the Sink is not running, is in an unhealthy state, or that metrics agents (e.g. caelumd) are no longer functioning correctly.`}}"
+          summary: "Sink stopped emitting metrics"
     ##
     ## The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
     ##
@@ -27,24 +171,13 @@ default_conf:
     ##
     - name: host.rules
       rules:
-      ##
       ## Recording rules that pre-compute frequently needed and computationally expensive expressions.
-      ##
-      # Active CPU usage percent (100-%idle)
-      - record: node_cpu_active_usage_percent
-        expr: 100-irate(node_cpu_seconds_total{job="node",mode="idle"}[5m])*100
-      # IOWait CPU usage percent
-      - record: node_cpu_iowait_usage_percent
-        expr: irate(node_cpu_seconds_total{job="node",mode="iowait"}[5m])*100
-      # System CPU usage percent
-      - record: node_cpu_system_usage_percent
-        expr: irate(node_cpu_seconds_total{job="node",mode="system"}[5m])*100
-      # User CPU usage percent
-      - record: node_cpu_user_usage_percent
-        expr: irate(node_cpu_seconds_total{job="node",mode="user"}[5m])*100
+      # CPU usage percent
+      - record: node_cpu_usage_percent
+        expr: sum by (mode, instance) (irate(node_cpu_seconds_total{job="node"}[5m]))
       # Memory percent available for application use
       - record: node_memory_available_percent
-        expr: 100*node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes
+        expr: 100*(node_memory_MemFree_bytes+node_memory_Cached_bytes+node_memory_Buffers_bytes)/node_memory_MemTotal_bytes
       # Filesystem space usage percent
       - record: node_filesystem_usage_percent
         expr: 100*(1-node_filesystem_avail_bytes{mountpoint!="/media"}/node_filesystem_size_bytes{mountpoint!="/media"})
@@ -54,6 +187,9 @@ default_conf:
       # File handles usage percent
       - record: node_filefd_usage_percent
         expr: 100*node_filefd_allocated/node_filefd_maximum
+      # Inode usage percent
+      - record: node_filesystem_inodes_usage_percent
+        expr: 100-100*(node_filesystem_files_free / node_filesystem_files)
       ##
       ## Alert rules that monitor the health of a host using metrics exported by Node Exporter.
       ##
@@ -68,11 +204,11 @@ default_conf:
           summary: "{{`Host {{ $labels.instance }} is down`}}"
       # Page if a host is flapping between up and down states.
       - alert: HostFlapping
-        expr: changes(up{job="node"}[1h]) > 5
+        expr: changes(up{job="node"}[1h]) > 3
         labels:
           severity: p0
         annotations:
-          description: "{{`Availablility status of {{ $labels.instance }} changed {{ $value }} times over the last 1 hour. This indicates that the host is likely in an unhealthy state.`}}"
+          description: "{{`Availability status of {{ $labels.instance }} changed {{ $value }} times over the last 1 hour. This indicates that the host is likely in an unhealthy state.`}}"
           summary: "{{`Host {{ $labels.instance }} is flapping`}}"
       # Page if disk usage is very high.
       - alert: HostHighDiskUsage
@@ -81,7 +217,10 @@ default_conf:
           severity: p0
         annotations:
           summary: "{{`Filesystem mounted at {{ $labels.mountpoint }} on host {{ $labels.instance }} is running out of space`}}"
-          description: "{{`The filesystem mounted at {{ $labels.mountpoint }} and backed by the {{ $labels.device }} device is currently at {{ $value }}% usage and is at risk of running out of space soon.`}}"
+          description: "{{`The filesystem mounted at {{ $labels.mountpoint }} and backed by the {{ $labels.device }} device is currently at {{ $value }}% usage and is very close to running out of space.`}}"
+          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
+          fstype: "{{`{{ $labels.fstype }}`}}"
+          device: "{{`{{ $labels.device }}`}}"
       # Page if the disk is predicted to fill up in 4 hours.
       - alert: HostDiskWillFillIn4Hours
         expr: predict_linear(node_filesystem_usage_percent[1h], 60 * 60 * 4) >= 100
@@ -89,8 +228,94 @@ default_conf:
         labels:
           severity: p0
         annotations:
-          description: "{{`At current rate of usage the filesystem {{ $labels.mountpoint }} on host {{ $labels.instance }} is predicted to fill up within the next 4 hours.`}}"
-          summary: "{{`Filesystem mounted at {{ $labels.mountpoint }} is predicted to fill up within the next 4 hours on {{ $labels.instance }}`}}"
+          description: "{{`At current rate of usage the filesystem mounted on {{ $labels.mountpoint }} for host {{ $labels.instance }} is predicted to fill up within the next 4 hours.`}}"
+          summary: "{{`Filesystem mounted on {{ $labels.mountpoint }} is predicted to fill up within the next 4 hours for host {{ $labels.instance }}`}}"
+          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
+          fstype: "{{`{{ $labels.fstype }}`}}"
+          device: "{{`{{ $labels.device }}`}}"
+      # Page if the number of inodes available in a filesystem is at or near depletion.
+      - alert: HostHighInodeUsage
+        expr: node_filesystem_inodes_usage_percent > 95
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`High Inode usage on {{ $labels.mountpoint }} for {{ $labels.instance }}`}}"
+          description: "{{`Inode usage percent on {{ $labels.instance }} for the filesystem mounted on {{ $labels.mountpoint }} is {{ $value }}% which at or near depletion. This indicates that there is an abnormally large number of files stored on the filesystem, usually caused by one or more applications creating many files without cleaning them up afterwards.`}}"
+          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
+          fstype: "{{`{{ $labels.fstype }}`}}"
+          device: "{{`{{ $labels.device }}`}}"
+      # Page if the number of inodes available in a filesystem is predicted to be depleted within the next 4 hours.
+      - alert: HostInodesDepletedIn4Hours
+        expr: predict_linear(node_filesystem_inodes_usage_percent[1h], 60 * 60 * 4) >= 100
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`Inodes available on {{ $labels.mountpoint }} for {{ $labels.instance }} is predicted to be depleted in 4 hours`}}"
+          description: "{{`At current rate of usage the number of available Inodes on host {{ $labels.instance }} for the filesystem mounted on {{ $labels.mountpoint }} is predicted to be depleted within the next 4 hours. This indicates that there is an abnormally large number of files stored on the filesystem, usually caused by one or more applications creating many files without cleaning them up afterwards.`}}"
+          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
+          fstype: "{{`{{ $labels.fstype }}`}}"
+          device: "{{`{{ $labels.device }}`}}"
+      # Page if the number of open files is very high and approaching the system limit.
+      - alert: HostOpenFilesLimit
+        expr: node_filefd_usage_percent > 95
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`File handles on {{ $labels.instance }} depleted`}}"
+          description: "{{`File handles usage on {{ $labels.instance }} is currently {{ $value }}% which is at or near depletion. This indicates that one or more processes have a large number of files open.`}}"
+      # Page if the open files limit will be depleted within the next 4 hours.
+      - alert: HostOpenFilesDepletedIn4Hours
+        expr: predict_linear(node_filefd_usage_percent[1h], 60 * 60 * 4) >= 100
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`File handles usage on {{ $labels.instance }} is predicted to be depleted in 4 hours`}}"
+          description: "{{`At current rate of usage the number of available file handles on host {{ $labels.instance }} is predicted to be depleted within the next 4 hours. This indicates that one or more processes have a large number of files open.`}}"
+      # Alert if the host is experiencing memory pressure.
+      - alert: HostMemoryPressure
+        expr: node_memory_available_percent <= 5 and rate(node_vmstat_pgmajfault[5m]) > 1024
+        for: 10m
+        labels:
+          severity: p0
+        annotations:
+          summary: "{{`Memory pressure on host {{ $labels.instance }}`}}"
+          description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.host }} and a high rate of major page faults. Hosts that have memory pressure will experience stability issues caused by the kernel OOM killer and degraded performance from active pages being paged out from main memory to disk if a swap space is configured.`}}"
+      # Alert if the system clock is unsynchronized.
+      - alert: HostUnsynchronizedClock
+        expr: node_ntp_stratum == 16
+        for: 5m
+        labels:
+          severity: p1
+        annotations:
+          summary: "{{`Clock unsynchronized on {{ $labels.instance }}`}}"
+          description: "{{`The system clock on {{ $labels.instance }} is not synchronized with an NTP server.`}}"
+      # Alert if the NTP sanity check fails.
+      - alert: HostNTPSanity
+        expr: node_ntp_sanity == 0
+        for: 5m
+        labels:
+          severity: p1
+        annotations:
+          summary: "{{`NTP sanity check failed on {{ $labels.instance }}`}}"
+          description: "{{`The NTP sanity check run on {{ $labels.instance }} failed. This indicates that there is a large offset between the local clock and configured NTP server(s), or the root synchronization distance with the NTP server(s) is excessively high. In both cases this means that the local clock time is likely inaccurate and different NTP server(s) should be used.`}}"
+      # Alert if the textfile collector encounters errors.
+      - alert: HostTextfileCollectorErrors
+        expr: node_textfile_scrape_error > 0
+        for: 5m
+        labels:
+          severity: p1
+        annotations:
+          summary: "{{`Errors encountered when running textfile collector on {{ $labels.instance }}`}}"
+          description: "{{`One or more errors occurred while opening or reading textfile(s) on {{ $labels.instance }}. This indicates that some metrics being placed into the textfile(s) are not being exported and scraped by Prometheus as expected.`}}"
+      # Page if the host has a low amount of entropy.
+      - alert: HostLowEntropy
+        expr: node_entropy_available_bits <= 256
+        for: 10m
+        labels:
+          severity: p1
+        annotations:
+          summary: "{{`Low entropy on host {{ $labels.instance }}`}}"
+          description: "{{`The number of bits available in the entropy pool over the last 10 minutes has remained below {{ $value }} which is very low. A depleted entropy pool will cause applications with that read from /dev/random to block. Consider installing and configuring haveged to inject more entropy into the pool.`}}"
       # Alert if the disk is predicted to fill up in 2 weeks.
       - alert: HostDiskWillFillIn2Weeks
         expr: predict_linear(node_filesystem_usage_percent{path!~"/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
@@ -98,26 +323,29 @@ default_conf:
         labels:
           severity: p1
         annotations:
-          description: "{{`At current rate of usage the disk {{ $labels.path }} on host {{ $labels.instance }} is predicted to fill up within the next 2 weeks.`}}"
-          summary: "{{`Disk {{ $labels.path }} predicted to fill up within the next 2 weeks on {{ $labels.instance }}`}}"
-      # Page if the host is experiencing memory pressure.
-      - alert: HostMemoryPressure
-        expr: min_over_time(node_memory_available_percent{}[5m]) <= 10
+          description: "{{`At current rate of usage the filesystem mounted on {{ $labels.mountpoint }} for host {{ $labels.instance }} is predicted to fill up within the next 2 weeks.`}}"
+          summary: "{{`Filesystem mounted on {{ $labels.path }} is predicted to fill up within the next 2 weeks for host {{ $labels.instance }}`}}"
+          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
+          fstype: "{{`{{ $labels.fstype }}`}}"
+          device: "{{`{{ $labels.device }}`}}"
+      # Alert if the host swap space usage is high.
+      - alert: HostHighSwapUsage
+        expr: 100*node_memory_SwapFree_bytes/node_memory_SwapTotal_bytes < 10
         for: 10m
         labels:
-          severity: p0
+          severity: p2
         annotations:
-          summary: "{{`Memory pressure on host {{ $labels.instance }}`}}"
-          description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.host }}. Hosts that run out of memory will experience stability issues caused by the kernel OOM killer and degraded performance from active pages being paged out from main memory to disk if a swap device is configured.`}}"
-      # Page if the host has a low amount of entropy.
-      - alert: HostLowEntropy
-        expr: avg_over_time(node_entropy_available_bits{}[10m]) <= 1024
+          summary: "{{`Swap usage on {{ $labels.instance }} is high`}}"
+          description: "{{`There is only {{ $labels.value }}% free swap space remaining on {{ $labels.instance }}.`}}"
+      # Alert if the host is experiencing a large amount of paging activity.
+      - alert: HostPagingActivity
+        expr: irate(node_vmstat_pgpgout{}[5m]) > 100000
         for: 10m
         labels:
-          severity: p0
+          severity: p2
         annotations:
-          summary: "{{`Low entropy on host {{ $labels.instance }}`}}"
-          description: "{{`The average number of bits available in the entropy pool over the last 10 minutes is {{ $value }} which is very low.`}}"
+          summary: "{{`Paging activity on {{ $labels.instance }}`}}"
+          description: "{{`There are {{ $value }} pages/s being paged out to disk on {{ $labels.instance }} which is very high. This indicates that the host may be experiencing memory pressure.`}}"
       # Alert if the host has not been rebooted in a long time.
       - alert: HostNeverRebooted
         expr: node_uptime_days > 180
@@ -126,22 +354,43 @@ default_conf:
         annotations:
           summary: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days`}}"
           description: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days which likely indicates that the currently installed and running kernel is out of date.`}}"
-      # Page if the number of open files is very high and approaching the system limit.
-      - alert: HostOpenFilesLimit
-        expr: node_filefd_usage_percent > 95
+      # Alert if amount of memory allocated to the page cache is very low.
+      - alert: HostPageCacheSize
+        expr: node_uptime_days > 7 and (node_memory_Cached_bytes/node_memory_MemTotal_bytes) < 0.10
+        for: 10m
         labels:
-          severity: p0
+          severity: p2
         annotations:
-          summary: "{{`File handles on {{ $labels.instance }} depleted`}}"
-          description: "{{`File handles usage on {{ $labels.instance }} is currently at {{ $value }}% which is at or near depletion.`}}"
-      # Page if the open files limit will be depleted within the next 4 hours.
-      - alert: HostOpenFilesDepletedIn4Hours
-        expr: predict_linear(node_filefd_usage_percent[1h], 60 * 60 * 4) >= 100
+          summary: "{{`Memory allocated to page cache on {{ $labels.instance }} is low`}}"
+          description: "{{`Less than 10% of total physical memory is allocated to the page cache on {{ $labels.instance }}. This indicates that the host is potentially oversubscribed and that applications are not able to take full advantage of the I/O performance benefits associated with page caching.`}}"
+      # Alert if CPU usage is excessively high for an extended period of time.
+      - alert: HostHighCPUUsage
+        expr: 100-sum(node_cpu_usage_percent{mode=~"idle|iowait"}) by (instance) > 85
+        for: 2h
         labels:
-          severity: p0
+          severity: p2
         annotations:
-          summary: "{{`File handles on {{ $labels.instance }} predicted to be depleted in 4 hours`}}"
-          description: "{{`At current rate of usage the pool of available file handles on host {{ $labels.instance }} is predicted to be depleted within the next 4 hours.`}}"
+          summary: "{{`High CPU usage on {{ $labels.instance }}`}}"
+          description: "{{`CPU usage on {{ $labels.instance }} has remained over 85% over the past 2 hours which is excessively high.`}}"
+      # Alert if the host is retransmitting TCP segments.
+      - alert: HostRetransmittedTCPSegments
+        expr: irate(node_netstat_Tcp_RetransSegs{}[5m]) > 100
+        for: 30m
+        labels:
+          severity: p2
+        annotations:
+          summary: "{{`Retransmitted TCP segments detected on {{ $labels.instance }}`}}"
+          description: "{{`Retransmitted TCP segments detected on {{ $labels.instance }} which is an indicator of saturation and other network issues which can adversely impact performance.`}}"
+      # Alert if the host is dropping packets.
+      - alert: HostDroppedPackets
+        expr: irate(node_network_receive_drop_total{}[5m]) > 100 or irate(node_network_transmit_drop_total{}[5m]) > 100
+        for: 30m
+        labels:
+          severity: p2
+        annotations:
+          summary: "{{`Dropped packets detected on {{ $labels.instance }}`}}"
+          description: "{{`Dropped packets detected on {{ $labels.instance }} over device {{ $labels.device }} which is an indicator of saturation and other network issues that can adversely impact network performance.`}}"
+          device: "{{`{{ $labels.device }}`}}"
   # Optionally discover a list of monitored hosts through Skylab service discovery.
   # If results are discovered, a default set of system baseline alerts are generated
   # using metrics that are pushed into Haruspex by a palantir metrics agent such as Caelumd.
@@ -152,6 +401,7 @@ default_conf:
     rule_files:
       - '{{ service_home }}/var/conf/caelumd_alerts.yml'
       - '{{ service_home }}/var/conf/baseline_rules.yml'
+      - '{{ service_home }}/var/conf/user_defined_rules.yml'
       - '{{ discovered.rulemanager-alert-rules-file }}'
     address: '{{ host.hostname }}'
     alertmanager_path: '{{ discovered.alertmanager-path }}'
@@ -252,6 +502,10 @@ managed_files:
   var/conf/baseline_rules.yml:
     live-reload: kick
     content: baseline_rules
+    type: yaml
+  var/conf/user_defined_rules.yml:
+    live-reload: kick
+    content: user_defined_rules
     type: yaml
   var/conf/caelumd_alerts.yml:
     live-reload: kick

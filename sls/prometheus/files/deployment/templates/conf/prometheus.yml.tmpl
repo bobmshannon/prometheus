@@ -45,6 +45,25 @@ scrape_configs:
       username: {{ .basic_auth.username }}
       password: {{ .basic_auth.password }}
     {{ end -}}
+    {{ if .metric_relabel_configs }}metric_relabel_configs:
+      {{ range $relabel_config := .metric_relabel_configs -}}
+      {{ if $relabel_config.source_labels -}}
+      - source_labels:
+        {{ range $label := $relabel_config.source_labels }}- {{ $label }}
+        {{ end }}
+      {{ end }}
+        {{ if $relabel_config.target_label }}target_label: {{ .target_label }}
+        {{ end -}}
+        {{ if $relabel_config.regex }}regex: {{ .regex }}
+        {{ end -}}
+        {{ if $relabel_config.replacement }}replacement: {{ .replacement }}
+        {{ end -}}
+        {{ if $relabel_config.action }}action: {{ .action }}
+        {{ end -}}
+        {{ if $relabel_config.separator }}separator: {{ .separator }}
+        {{ end -}}
+      {{ end }}
+    {{ end }}
     {{ if .params }}params:
       {{ range $paramKey, $paramList := .params -}}
       {{ $paramKey }}:
@@ -58,15 +77,19 @@ alerting:
     {{ range .conf.prometheus.alert_relabel_configs }}
     {{ if .source_labels -}}
     - source_labels:
-      {{ range .source_labels }}
-        - {{ . }}
+      {{ range .source_labels }}- {{ . }}
       {{ end }}
     {{ end }}
-      {{ if .target_label }}target_label: {{ .target_label }}{{ end }}
-      {{ if .regex }}regex: {{ .regex }}{{ end }}
-      {{ if .replacement }}replacement: {{ .replacement }}{{ end }}
-      {{ if .action }}action: {{ .action }}{{ end }}
-      {{ if .separator }}separator: {{ .separator }}{{ end }}
+      {{ if .target_label }}target_label: {{ .target_label }}
+      {{ end -}}
+      {{ if .regex }}regex: {{ .regex }}
+      {{ end -}}
+      {{ if .replacement }}replacement: {{ .replacement }}
+      {{ end -}}
+      {{ if .action }}action: {{ .action }}
+      {{ end -}}
+      {{ if .separator }}separator: {{ .separator }}
+      {{ end -}}
     {{ end }}
   {{ end }}
   alertmanagers:

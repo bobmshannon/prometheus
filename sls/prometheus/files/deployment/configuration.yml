@@ -204,7 +204,7 @@ default_conf:
           summary: "{{`Host {{ $labels.instance }} is down`}}"
       # Page if a host is flapping between up and down states.
       - alert: HostFlapping
-        expr: changes(up{job="node"}[1h]) > 3
+        expr: changes(up{job="node"}[1h]) > 5
         labels:
           severity: p0
         annotations:
@@ -315,7 +315,7 @@ default_conf:
           severity: p1
         annotations:
           summary: "{{`Low entropy on host {{ $labels.instance }}`}}"
-          description: "{{`The number of bits available in the entropy pool over the last 10 minutes has remained below {{ $value }} which is very low. A depleted entropy pool will cause applications with that read from /dev/random to block. Consider installing and configuring haveged to inject more entropy into the pool.`}}"
+          description: "{{`The number of bits available in the entropy pool over the last 10 minutes has remained below {{ $value }} which is very low. A depleted entropy pool will cause applications that read from /dev/random to block. Consider installing and configuring haveged to inject more entropy into the pool.`}}"
       # Alert if the disk is predicted to fill up in 2 weeks.
       - alert: HostDiskWillFillIn2Weeks
         expr: predict_linear(node_filesystem_usage_percent{path!~"/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
@@ -420,6 +420,12 @@ default_conf:
     prometheus_metrics: '{{ discovered.prometheus-metrics }}'
     scrape_interval: 30s
     scrape_timeout: 30s
+    alert_relabel_configs:
+      # Add hostname label when sending alert to alertmanager for inhibition purposes.
+      - source_labels:
+         - instance
+        target_label: fqdn
+        regex: ^(.*):\d+$
 
 discovery:
   consumes:

@@ -54,6 +54,21 @@ scrape_configs:
     {{ end -}}
 {{ end }}{{ end }}
 alerting:
+  {{ if .conf.prometheus.alert_relabel_configs }}alert_relabel_configs:
+    {{ range .conf.prometheus.alert_relabel_configs }}
+    {{ if .source_labels -}}
+    - source_labels:
+      {{ range .source_labels }}
+        - {{ . }}
+      {{ end }}
+    {{ end }}
+      {{ if .target_label }}target_label: {{ .target_label }}{{ end }}
+      {{ if .regex }}regex: {{ .regex }}{{ end }}
+      {{ if .replacement }}replacement: {{ .replacement }}{{ end }}
+      {{ if .action }}action: {{ .action }}{{ end }}
+      {{ if .separator }}separator: {{ .separator }}{{ end }}
+    {{ end }}
+  {{ end }}
   alertmanagers:
     - scheme: {{.conf.prometheus.alertmanager_scheme}}
       path_prefix: {{ .conf.prometheus.alertmanager_path }}

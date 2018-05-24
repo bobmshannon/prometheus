@@ -336,7 +336,7 @@ default_conf:
           severity: p2
         annotations:
           summary: "{{`Swap usage on {{ $labels.instance }} is high`}}"
-          description: "{{`There is only {{ $labels.value }}% free swap space remaining on {{ $labels.instance }}.`}}"
+          description: "{{`There is only {{ $value }}% free swap space remaining on {{ $labels.instance }}.`}}"
       # Alert if the host is experiencing a large amount of paging activity.
       - alert: HostPagingActivity
         expr: irate(node_vmstat_pgpgout{}[5m]) > 100000

@@ -151,7 +151,7 @@ default_conf:
           severity: p1
         annotations:
           description: "{{`The Sink installed on {{ $labels.host }} has stopped ingesting {{ $labels.input }} metrics. This indicates that metrics agents have stopped sending telemetry, or that the Sink is in an unhealthy state.`}}"
-          summary: "{{`Sink not ingesting {{ labels.input }} metrics`}}"
+          summary: "{{`Sink not ingesting {{ $labels.input }} metrics`}}"
       # Alert if the sink stops emitting telemetry.
       - alert: SinkNoData
         expr: absent(haruspex_sink_metrics_processed:count) == 1

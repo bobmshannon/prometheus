@@ -279,7 +279,7 @@ default_conf:
           severity: p0
         annotations:
           summary: "{{`Memory pressure on host {{ $labels.instance }}`}}"
-          description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.host }} and a high rate of major page faults. Hosts that have memory pressure will experience stability issues caused by the kernel OOM killer and degraded performance from active pages being paged out from main memory to disk if a swap space is configured.`}}"
+          description: "{{`There is only {{ $value }}% amount of available memory for application use on host {{ $labels.instance }} and a high rate of major page faults. Hosts that have memory pressure will experience stability issues caused by the kernel OOM killer and degraded performance from active pages being paged out from main memory to disk if a swap space is configured.`}}"
       # Alert if the system clock is unsynchronized.
       - alert: HostUnsynchronizedClock
         expr: node_ntp_stratum == 16

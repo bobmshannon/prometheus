@@ -165,7 +165,19 @@ default_conf:
     ## The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
     ##
     - name: sls.rules
-      rules: []
+      rules:
+      # Page if a sls-service reports an non-healthy state.
+      - alert: SLSServiceNotHealthy
+        expr: haruspex_slshealthstatus_value != 200
+        for: 5m
+        labels:
+          severity: p0
+        annotations:
+          description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }} for the check type {{ $labels.type }}. The reported message is: {{ $labels.message }}`}}"
+          summary: "{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}"
+          product: "{{`{{ $labels.product }}`}}"
+          node: "{{`{{ $labels.node_id }}`}}"
+          host: "{{`{{ $labels.host }}`}}"
     ##
     ## The set of system baseline rules evaluated by Prometheus.
     ##

@@ -51,7 +51,6 @@ default_conf:
         annotations:
           description: "{{`Errors while sending alerts from Prometheus ({{ $labels.instance }}) to Alertmanager {{$labels.Alertmanager}}`}}"
           summary: "Errors while sending alert from Prometheus"
-          alertmanager: "{{`{{$labels.Alertmanager}}`}}"
       ## Page if there is an excessively high number of errors while sending alerts to Alertmanager.
       - alert: PrometheusErrorSendingAlerts
         expr: rate(prometheus_notifications_errors_total[5m]) / rate(prometheus_notifications_sent_total[5m]) > 0.03
@@ -175,9 +174,6 @@ default_conf:
         annotations:
           description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. The reported message is: {{ $labels.message }}`}}"
           summary: "{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}"
-          product: "{{`{{ $labels.product }}`}}"
-          node: "{{`{{ $labels.node_id }}`}}"
-          host: "{{`{{ $labels.host }}`}}"
     ##
     ## The set of system baseline rules evaluated by Prometheus.
     ##
@@ -230,9 +226,6 @@ default_conf:
         annotations:
           summary: "{{`Filesystem mounted at {{ $labels.mountpoint }} on host {{ $labels.instance }} is running out of space`}}"
           description: "{{`The filesystem mounted at {{ $labels.mountpoint }} and backed by the {{ $labels.device }} device is currently at {{ $value }}% usage and is very close to running out of space.`}}"
-          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
-          fstype: "{{`{{ $labels.fstype }}`}}"
-          device: "{{`{{ $labels.device }}`}}"
       # Page if the disk is predicted to fill up in 4 hours.
       - alert: HostDiskWillFillIn4Hours
         expr: predict_linear(node_filesystem_usage_percent[1h], 60 * 60 * 4) >= 100
@@ -242,9 +235,6 @@ default_conf:
         annotations:
           description: "{{`At current rate of usage the filesystem mounted on {{ $labels.mountpoint }} for host {{ $labels.instance }} is predicted to fill up within the next 4 hours.`}}"
           summary: "{{`Filesystem mounted on {{ $labels.mountpoint }} is predicted to fill up within the next 4 hours for host {{ $labels.instance }}`}}"
-          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
-          fstype: "{{`{{ $labels.fstype }}`}}"
-          device: "{{`{{ $labels.device }}`}}"
       # Page if the number of inodes available in a filesystem is at or near depletion.
       - alert: HostHighInodeUsage
         expr: node_filesystem_inodes_usage_percent > 95
@@ -253,9 +243,6 @@ default_conf:
         annotations:
           summary: "{{`High Inode usage on {{ $labels.mountpoint }} for {{ $labels.instance }}`}}"
           description: "{{`Inode usage percent on {{ $labels.instance }} for the filesystem mounted on {{ $labels.mountpoint }} is {{ $value }}% which at or near depletion. This indicates that there is an abnormally large number of files stored on the filesystem, usually caused by one or more applications creating many files without cleaning them up afterwards.`}}"
-          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
-          fstype: "{{`{{ $labels.fstype }}`}}"
-          device: "{{`{{ $labels.device }}`}}"
       # Page if the number of inodes available in a filesystem is predicted to be depleted within the next 4 hours.
       - alert: HostInodesDepletedIn4Hours
         expr: predict_linear(node_filesystem_inodes_usage_percent[1h], 60 * 60 * 4) >= 100
@@ -264,9 +251,6 @@ default_conf:
         annotations:
           summary: "{{`Inodes available on {{ $labels.mountpoint }} for {{ $labels.instance }} is predicted to be depleted in 4 hours`}}"
           description: "{{`At current rate of usage the number of available Inodes on host {{ $labels.instance }} for the filesystem mounted on {{ $labels.mountpoint }} is predicted to be depleted within the next 4 hours. This indicates that there is an abnormally large number of files stored on the filesystem, usually caused by one or more applications creating many files without cleaning them up afterwards.`}}"
-          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
-          fstype: "{{`{{ $labels.fstype }}`}}"
-          device: "{{`{{ $labels.device }}`}}"
       # Page if the number of open files is very high and approaching the system limit.
       - alert: HostOpenFilesLimit
         expr: node_filefd_usage_percent > 95
@@ -337,9 +321,6 @@ default_conf:
         annotations:
           description: "{{`At current rate of usage the filesystem mounted on {{ $labels.mountpoint }} for host {{ $labels.instance }} is predicted to fill up within the next 2 weeks.`}}"
           summary: "{{`Filesystem mounted on {{ $labels.path }} is predicted to fill up within the next 2 weeks for host {{ $labels.instance }}`}}"
-          mountpoint: "{{`{{ $labels.mountpoint }}`}}"
-          fstype: "{{`{{ $labels.fstype }}`}}"
-          device: "{{`{{ $labels.device }}`}}"
       # Alert if the host swap space usage is high.
       - alert: HostHighSwapUsage
         expr: 100*node_memory_SwapFree_bytes/node_memory_SwapTotal_bytes < 10
@@ -402,7 +383,6 @@ default_conf:
         annotations:
           summary: "{{`Dropped packets detected on {{ $labels.instance }}`}}"
           description: "{{`Dropped packets detected on {{ $labels.instance }} over device {{ $labels.device }} which is an indicator of saturation and other network issues that can adversely impact network performance.`}}"
-          device: "{{`{{ $labels.device }}`}}"
   # Optionally discover a list of monitored hosts through Skylab service discovery.
   # If results are discovered, a default set of system baseline alerts are generated
   # using metrics that are pushed into Haruspex by a palantir metrics agent such as Caelumd.

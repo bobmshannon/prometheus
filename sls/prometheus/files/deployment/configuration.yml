@@ -320,7 +320,7 @@ default_conf:
           severity: p1
         annotations:
           description: "{{`At current rate of usage the filesystem mounted on {{ $labels.mountpoint }} for host {{ $labels.instance }} is predicted to fill up within the next 2 weeks.`}}"
-          summary: "{{`Filesystem mounted on {{ $labels.path }} is predicted to fill up within the next 2 weeks for host {{ $labels.instance }}`}}"
+          summary: "{{`Filesystem mounted on {{ $labels.mountpoint }} is predicted to fill up within the next 2 weeks for host {{ $labels.instance }}`}}"
       # Alert if the host swap space usage is high.
       - alert: HostHighSwapUsage
         expr: 100*node_memory_SwapFree_bytes/node_memory_SwapTotal_bytes < 10

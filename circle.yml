@@ -1,6 +1,6 @@
 machine:
   environment:
-    GODIST: "go1.10.linux-amd64.tar.gz"
+    GODIST: "go1.10.2.linux-amd64.tar.gz"
     GOPATH: "$HOME/.go_workspace"
     PROJECT_PATH: "$GOPATH/src/github.com/prometheus/prometheus"
   services:

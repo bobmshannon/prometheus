@@ -182,7 +182,7 @@ default_conf:
       ## Recording rules that pre-compute frequently needed and computationally expensive expressions.
       # CPU usage percent
       - record: node_cpu_usage_percent
-        expr: sum by (mode, instance) (irate(node_cpu_seconds_total{job="node"}[5m]))
+        expr: avg by (mode, instance) (100*irate(node_cpu_seconds_total{job="node"}[5m]))
       # Memory percent available for application use
       - record: node_memory_available_percent
         expr: 100*(node_memory_MemFree_bytes+node_memory_Cached_bytes+node_memory_Buffers_bytes)/node_memory_MemTotal_bytes

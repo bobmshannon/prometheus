@@ -158,8 +158,8 @@ default_conf:
         labels:
           severity: p1
         annotations:
-          description: "{{`The Sink installed on {{ $labels.host }} has stopped emitting metrics. This indicates that the Sink is not running, is in an unhealthy state, or that metrics agents (e.g. caelumd) are no longer functioning correctly.`}}"
-          summary: "Sink stopped emitting metrics"
+          description: "The Sink installed on {{ discovered.haruspex-sink.hostname }} has stopped emitting metrics. This indicates that the Sink is not running, is in an unhealthy state, or that metrics agents (e.g. caelumd) are no longer functioning correctly."
+          summary: "Sink installed on {{ discovered.haruspex-sink.hostname }} stopped emitting metrics"
     ##
     ## The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
     ##
@@ -431,6 +431,8 @@ discovery:
       all: true
       role: alertmanager
       select: endpoint
+    haruspex-sink:
+      role: haruspex-sink
     metrics-agent:
       all: false
       role: metrics-agent

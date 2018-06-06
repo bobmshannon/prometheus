@@ -16,8 +16,8 @@ package web
 import (
 	"bytes"
 	"context"
-	"errors"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -36,8 +36,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"google.golang.org/grpc"
-
 	pprof_runtime "runtime/pprof"
 	template_text "text/template"
 
@@ -54,6 +52,7 @@ import (
 	"github.com/prometheus/tsdb"
 	"golang.org/x/net/netutil"
 
+	"crypto/tls"
 	"github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/notifier"
 	"github.com/prometheus/prometheus/pkg/labels"
@@ -65,9 +64,7 @@ import (
 	"github.com/prometheus/prometheus/template"
 	"github.com/prometheus/prometheus/util/httputil"
 	api_v1 "github.com/prometheus/prometheus/web/api/v1"
-	api_v2 "github.com/prometheus/prometheus/web/api/v2"
 	"github.com/prometheus/prometheus/web/ui"
-	"crypto/tls"
 )
 
 var localhostRepresentations = []string{"127.0.0.1", "localhost"}
@@ -146,10 +143,8 @@ type Options struct {
 	UserAssetsPath       string
 	ConsoleTemplatesPath string
 	ConsoleLibrariesPath string
-	EnablegRPC           bool
 	EnableLifecycle      bool
 	EnableAdminAPI       bool
-	EnableHTTPS          bool
 	Protocol             string
 	CAFile               string
 	CertificateFile      string
@@ -414,6 +409,9 @@ func (h *Handler) Run(ctx context.Context) error {
 		}
 	} else if h.options.Protocol == "http" {
 		listener, err = net.Listen("tcp", h.options.ListenAddress)
+		if err != nil {
+			return err
+		}
 	} else {
 		return errors.New("Unsupported protocol specified.")
 	}
@@ -426,32 +424,9 @@ func (h *Handler) Run(ctx context.Context) error {
 		conntrack.TrackWithTracing())
 
 	var (
-		m       = cmux.New(listener)
-		grpcl   = m.Match(cmux.HTTP2HeaderField("content-type", "application/grpc"))
-		httpl   = m.Match(cmux.HTTP1Fast())
-		grpcSrv = grpc.NewServer()
+		m     = cmux.New(listener)
+		httpl = m.Match(cmux.HTTP1Fast())
 	)
-	av2 := api_v2.New(
-		time.Now,
-		h.options.TSDB,
-		h.options.QueryEngine,
-		h.options.Storage.Querier,
-		func() []*scrape.Target {
-			return h.options.ScrapeManager.Targets()
-		},
-		func() []*url.URL {
-			return h.options.Notifier.Alertmanagers()
-		},
-		h.options.EnablegRPC,
-	)
-	av2.RegisterGRPC(grpcSrv)
-
-	hh, err := av2.HTTPHandler(h.options.ListenAddress)
-	if err != nil {
-		return err
-	}
-
-	hhFunc := h.testReadyHandler(hh)
 
 	operationName := nethttp.OperationNameFunc(func(r *http.Request) string {
 		return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
@@ -469,13 +444,6 @@ func (h *Handler) Run(ctx context.Context) error {
 
 	mux.Handle(apiPath+"/v1/", http.StripPrefix(apiPath+"/v1", av1))
 
-	mux.Handle(apiPath+"/", http.StripPrefix(apiPath,
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			setCORS(w)
-			hhFunc(w, r)
-		}),
-	))
-
 	errlog := stdlog.New(log.NewStdlibAdapter(level.Error(h.logger)), "", 0)
 
 	httpSrv := &http.Server{
@@ -489,11 +457,6 @@ func (h *Handler) Run(ctx context.Context) error {
 			level.Warn(h.logger).Log("msg", "error serving HTTP", "err", err)
 		}
 	}()
-	go func() {
-		if err := grpcSrv.Serve(grpcl); err != nil {
-			level.Warn(h.logger).Log("msg", "error serving gRPC", "err", err)
-		}
-	}()
 
 	errCh := make(chan error)
 	go func() {
@@ -505,7 +468,6 @@ func (h *Handler) Run(ctx context.Context) error {
 		return e
 	case <-ctx.Done():
 		httpSrv.Shutdown(ctx)
-		grpcSrv.GracefulStop()
 		return nil
 	}
 }

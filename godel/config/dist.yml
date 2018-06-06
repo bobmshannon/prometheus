@@ -7,9 +7,49 @@ products:
       os-archs:
         - os: linux
           arch: amd64
+        - os: darwin
+          arch: amd64
     dist:
       input-dir: sls/prometheus/files
       output-dir: sls/prometheus/dist
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        CUSTOM_SLS_LOG_VERSION=0.0.3
+        CUSTOM_SLS_LOG_LINUX_CHECKSUM=50597443201667eea4354ccb1176d7a3
+        CUSTOM_SLS_LOG_DARWIN_CHECKSUM=1a45a6bf312d70d9234f666a24713c86
+        LOGROTATE_VERSION=3.11.0-0.2.0
+        LOGROTATE_EL6_CHECKSUM=149b65e66fc5b7942af8cc9ab8aa1881
+        LOGROTATE_EL7_CHECKSUM=884a27d0c1a75b91fe1c496fdfbea1c0
+
+        function validate_checksum {
+          local expected_checksum=$1
+          local file=$2
+
+          computed_checksum=$(compute_checksum "$file")
+          if [[ "$expected_checksum" != "$computed_checksum" ]]; then
+            echo "Expected checksum for ${file} was ${expected_checksum} which did not match the computed result ${computed_checksum}."
+            exit 1
+          fi
+        }
+
+        function compute_checksum {
+          local file=$1
+          openssl dgst -md5 "$file" | cut -d ' ' -f 2
+        }
+
+        curl -f -L "https://artifactory.palantir.build/artifactory/internal-dist-release/com/palantir/caelum/custom-sls-log/${CUSTOM_SLS_LOG_VERSION}/custom-sls-log-${CUSTOM_SLS_LOG_VERSION}.tgz" | tar xvz --strip-components=1 -C "${DIST_DIR}/service" "custom-sls-log-${CUSTOM_SLS_LOG_VERSION}/bin/"
+        validate_checksum "$CUSTOM_SLS_LOG_LINUX_CHECKSUM" "${DIST_DIR}/service/bin/linux-amd64/custom-sls-log"
+        validate_checksum "$CUSTOM_SLS_LOG_DARWIN_CHECKSUM" "${DIST_DIR}/service/bin/darwin-amd64/custom-sls-log"
+        curl -f -L "https://artifactory.palantir.build/artifactory/internal-dist-release/com/palantir/sls/logrotate/${LOGROTATE_VERSION}/logrotate-${LOGROTATE_VERSION}.sls.tgz" | tar xvz "logrotate-${LOGROTATE_VERSION}/service/bin/"
+        mv "logrotate-${LOGROTATE_VERSION}/service/bin/logrotate.el6" "${DIST_DIR}/service/bin/logrotate.el6"
+        mv "logrotate-${LOGROTATE_VERSION}/service/bin/logrotate.el7" "${DIST_DIR}/service/bin/logrotate.el7"
+        mv "logrotate-${LOGROTATE_VERSION}/service/bin/logrotate.sh" "${DIST_DIR}/service/bin/logrotate.sh"
+        chmod +x "${DIST_DIR}/service/bin/logrotate.sh"
+        rm -rf "logrotate-${LOGROTATE_VERSION}"
+        validate_checksum "$LOGROTATE_EL6_CHECKSUM" "${DIST_DIR}/service/bin/logrotate.el6"
+        validate_checksum "$LOGROTATE_EL7_CHECKSUM" "${DIST_DIR}/service/bin/logrotate.el7"
+
       dist-type:
         type: sls
         info:

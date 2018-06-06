@@ -1,7 +1,7 @@
 default_conf:
   ENV:
     CONFIG_FILE: '{{ service_home }}/var/conf/prometheus.yml'
-    LOG_FILE: '{{ service_home }}/var/log/prometheus-console.log'
+    LOG_FILE: '{{ service_home }}/var/log/service.log'
     LOG_LEVEL: info
     RELOAD_URL: '{{ conf.prometheus.protocol }}://{{ conf.prometheus.hostname }}:{{ conf.prometheus.port }}/-/reload'
     STORAGE_TSDB_PATH: '{{ service_home }}/var/data/'
@@ -12,6 +12,16 @@ default_conf:
     WEB_LISTEN_ADDRESS: '{{ conf.prometheus.address }}:{{ conf.prometheus.port }}'
     WEB_PROTOCOL: '{{ conf.prometheus.protocol }}'
     WEB_ROUTE_PREFIX: '{{ conf.prometheus.context_path }}'
+  logrotate:
+    files:
+      - filepath: '{{ conf.ENV.LOG_FILE }}'
+        settings: []
+    global:
+      - compress
+      - copytruncate
+      - hourly
+      - rotate 7
+      - size 512M
   oauth:
     client_id: '{{stack_name}}-{{service_name}}'
     client_secret: "{{plaintext_secret('oauth-secret')}}"
@@ -492,7 +502,8 @@ discovery:
       settings:
         - compress
         - copytruncate
-        - hourly
+        - dateext
+        - daily
         - rotate 7
         - size 512M
 managed_files:
@@ -508,6 +519,9 @@ managed_files:
     content: user_defined_rules
     type: yaml
   var/conf/caelumd_alerts.yml:
+    live-reload: kick
+    type: tmpl
+  var/conf/logrotate.conf:
     live-reload: kick
     type: tmpl
 generated_secrets:

@@ -21,7 +21,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -108,7 +107,6 @@ func TestReadyAndHealthy(t *testing.T) {
 		MetricsPath:    "/metrics/",
 		Protocol:       "http",
 		EnableAdminAPI: true,
-		EnablegRPC:     true,
 		TSDB:           func() *libtsdb.DB { return db },
 	}
 
@@ -141,16 +139,6 @@ func TestReadyAndHealthy(t *testing.T) {
 	testutil.Ok(t, err)
 	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
 
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/snapshot", "", strings.NewReader(""))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/delete_series", "", strings.NewReader("{}"))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
-
 	// Set to ready.
 	webHandler.Ready()
 
@@ -165,16 +153,6 @@ func TestReadyAndHealthy(t *testing.T) {
 	testutil.Equals(t, http.StatusOK, resp.StatusCode)
 
 	resp, err = http.Get("http://localhost:9090/version")
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/snapshot", "", strings.NewReader(""))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/delete_series", "", strings.NewReader("{}"))
 
 	testutil.Ok(t, err)
 	testutil.Equals(t, http.StatusOK, resp.StatusCode)
@@ -206,7 +184,6 @@ func TestRoutePrefix(t *testing.T) {
 		RoutePrefix:    "/prometheus",
 		MetricsPath:    "/prometheus/metrics",
 		EnableAdminAPI: true,
-		EnablegRPC:     true,
 		TSDB:           func() *libtsdb.DB { return db },
 	}
 
@@ -239,16 +216,6 @@ func TestRoutePrefix(t *testing.T) {
 	testutil.Ok(t, err)
 	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
 
-	resp, err = http.Post("http://localhost:9091"+opts.RoutePrefix+"/api/v2/admin/tsdb/snapshot", "", strings.NewReader(""))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9091"+opts.RoutePrefix+"/api/v2/admin/tsdb/delete_series", "", strings.NewReader("{}"))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
-
 	// Set to ready.
 	webHandler.Ready()
 
@@ -263,16 +230,6 @@ func TestRoutePrefix(t *testing.T) {
 	testutil.Equals(t, http.StatusOK, resp.StatusCode)
 
 	resp, err = http.Get("http://localhost:9091" + opts.RoutePrefix + "/version")
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9091"+opts.RoutePrefix+"/api/v2/admin/tsdb/snapshot", "", strings.NewReader(""))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9091"+opts.RoutePrefix+"/api/v2/admin/tsdb/delete_series", "", strings.NewReader("{}"))
 
 	testutil.Ok(t, err)
 	testutil.Equals(t, http.StatusOK, resp.StatusCode)

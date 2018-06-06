@@ -140,9 +140,6 @@ func main() {
 	a.Flag("web.enable-admin-api", "Enables API endpoints for admin control actions.").
 		Default("false").BoolVar(&cfg.web.EnableAdminAPI)
 
-	a.Flag("web.enable-grpc", "Enables the experimental gRPC endpoints.").
-		Default("false").BoolVar(&cfg.web.EnablegRPC)
-
 	a.Flag("web.protocol", "Protocol to use. 'http' or 'https'.").
 		Default("https").StringVar(&cfg.web.Protocol)
 

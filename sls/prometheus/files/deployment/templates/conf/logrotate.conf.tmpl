@@ -1,0 +1,7 @@
+{{range $global_setting := .conf.logrotate.global}}{{$global_setting}}
+{{end}}
+{{range $file := .conf.logrotate.files}}{{if (not $file.hostnames) or (contains $file.hostnames .host.hostname)}}
+{{$file.filepath}} { {{range $local_setting := $file.settings}}
+	{{$local_setting}}{{end}}
+}
+{{end}}{{end}}

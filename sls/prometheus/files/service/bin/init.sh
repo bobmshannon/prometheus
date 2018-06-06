@@ -29,12 +29,23 @@ OS_ARCH="$(uname -s | awk '{print tolower($0)}')-amd64"
 
 ACTION=$1
 SERVICE="{{.ProductName}}"
-SERVICE_CMD="$SERVICE_HOME/service/bin/$OS_ARCH/$SERVICE {{.Dist.ServiceArgs}}"
 PIDFILE="var/run/$SERVICE.pid"
+SERVICE_CMD="$SERVICE_HOME/service/bin/$OS_ARCH/$SERVICE {{.Dist.ServiceArgs}}"
+CUSTOM_SLS_LOG="custom-sls-log"
+CUSTOM_SLS_LOG_CMD="$SERVICE_HOME/service/bin/$OS_ARCH/$CUSTOM_SLS_LOG convert"
 
 if [ -f service/bin/config.sh ]; then
     source service/bin/config.sh
 fi
+
+if [ -f service/bin/logrotate.sh ]; then
+    source service/bin/logrotate.sh
+fi
+
+start_with_sls_logging () {
+    ($SERVICE_CMD & echo $! > $PIDFILE) 2>&1 | $CUSTOM_SLS_LOG_CMD --parse-regex 'level=(?P<level>info|warn|debug|error) ts=([^\s]+) (?P<unsafe_remainder>.*)' \
+      --timestamp-format "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'" 2>&1 >> $LOG_FILE &
+}
 
 # Returns 0 if the service's pid is running
 is_process_active() {
@@ -58,11 +69,10 @@ start)
     mkdir -p "var/log"
     mkdir -p "var/run"
 
-    
     # run a service, append stderr and stdout to startup logs
-    PID=$($SERVICE_CMD >> $LOG_FILE 2>&1 & echo $!)
-    echo $PID > $PIDFILE
+    start_with_sls_logging
     sleep 1
+    PID="$(cat $PIDFILE)"
     if is_process_active $PID; then
         printf "%s\n" "Started ($PID)"
         exit 0
@@ -74,6 +84,9 @@ start)
 ;;
 status)
     printf "%-50s" "Checking '$SERVICE'..."
+
+    logrotate 2>&1 | $CUSTOM_SLS_LOG_CMD 2>&1 >> $LOG_FILE &
+
     if [ -f $PIDFILE ]; then
         PID=$(cat $PIDFILE)
         if is_process_active $PID; then

@@ -43,8 +43,8 @@ if [ -f service/bin/logrotate.sh ]; then
 fi
 
 start_with_sls_logging () {
-    ($SERVICE_CMD & echo $! > $PIDFILE) 2>&1 | $CUSTOM_SLS_LOG_CMD --parse-regex 'level=(?P<level>info|warn|debug|error) ts=([^\s]+) (?P<unsafe_remainder>.*)' \
-      --timestamp-format "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'" 2>&1 >> $LOG_FILE &
+    ($SERVICE_CMD & echo $! > $PIDFILE) 2>&1 | $CUSTOM_SLS_LOG_CMD --parse-regex 'level=(?P<level>info|warn|debug|error) ts=(?P<timestamp>[^\s]+) ' \
+      --timestamp-format "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS-" 2>&1 >> $LOG_FILE &
 }
 
 # Returns 0 if the service's pid is running

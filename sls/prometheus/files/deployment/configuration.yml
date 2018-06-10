@@ -155,7 +155,7 @@ default_conf:
       rules:
       # Alert if the sink stops processing metrics.
       - alert: SinkNotIngestingMetrics
-        expr: irate(haruspex_sink_metrics_processed:count{}[5m]) == 0
+        expr: rate(haruspex_sink_metrics_processed:count{}[5m]) == 0
         for: 10m
         labels:
           severity: p1
@@ -193,7 +193,7 @@ default_conf:
       ## Recording rules that pre-compute frequently needed and computationally expensive expressions.
       # CPU usage percent
       - record: node_cpu_usage_percent
-        expr: avg by (mode, instance) (100*irate(node_cpu_seconds_total{job="node"}[5m]))
+        expr: avg by (mode, instance) (100*rate(node_cpu_seconds_total{job="node"}[5m]))
       # Memory percent available for application use
       - record: node_memory_available_percent
         expr: 100*(node_memory_MemFree_bytes+node_memory_Cached_bytes+node_memory_Buffers_bytes)/node_memory_MemTotal_bytes
@@ -343,7 +343,7 @@ default_conf:
           description: "{{`There is only {{ $value }}% free swap space remaining on {{ $labels.instance }}.`}}"
       # Alert if the host is experiencing a large amount of paging activity.
       - alert: HostPagingActivity
-        expr: irate(node_vmstat_pgpgout{}[5m]) > 100000
+        expr: rate(node_vmstat_pgpgout{}[5m]) > 100000
         for: 10m
         labels:
           severity: p2
@@ -378,7 +378,7 @@ default_conf:
           description: "{{`CPU usage on {{ $labels.instance }} has remained over 85% over the past 2 hours which is excessively high.`}}"
       # Alert if the host is retransmitting TCP segments.
       - alert: HostRetransmittedTCPSegments
-        expr: irate(node_netstat_Tcp_RetransSegs{}[5m]) > 100
+        expr: rate(node_netstat_Tcp_RetransSegs{}[5m]) > 100
         for: 30m
         labels:
           severity: p2
@@ -387,7 +387,7 @@ default_conf:
           description: "{{`Retransmitted TCP segments detected on {{ $labels.instance }} which is an indicator of saturation and other network issues which can adversely impact performance.`}}"
       # Alert if the host is dropping packets.
       - alert: HostDroppedPackets
-        expr: irate(node_network_receive_drop_total{}[5m]) > 100 or irate(node_network_transmit_drop_total{}[5m]) > 100
+        expr: rate(node_network_receive_drop_total{}[5m]) > 100 or rate(node_network_transmit_drop_total{}[5m]) > 100
         for: 30m
         labels:
           severity: p2

@@ -104,6 +104,7 @@ func TestEndpointHeaders(t *testing.T) {
 		RuleManager:    nil,
 		Notifier:       nil,
 		RoutePrefix:    "/",
+		Protocol:       "http",
 		EnableAdminAPI: true,
 		TSDB:           func() *libtsdb.DB { return db },
 	}

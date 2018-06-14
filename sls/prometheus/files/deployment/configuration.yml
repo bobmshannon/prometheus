@@ -183,7 +183,7 @@ default_conf:
         labels:
           severity: p0
         annotations:
-          description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. The reported message is: {{ $labels.message }}`}}"
+          description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. To see the entire check result message, please login to Gemini and view the service's health status information."
           summary: "{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}"
     ##
     ## The set of system baseline rules evaluated by Prometheus.

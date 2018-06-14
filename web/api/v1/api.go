@@ -138,8 +138,6 @@ func NewAPI(
 	readyFunc func(http.HandlerFunc) http.HandlerFunc,
 	db func() *tsdb.DB,
 	enableAdmin bool,
-	user string,
-	password string,
 ) *API {
 	return &API{
 		QueryEngine:           qe,

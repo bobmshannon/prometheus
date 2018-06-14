@@ -185,8 +185,6 @@ type Options struct {
 	CAFile               string
 	CertificateFile      string
 	KeyFile              string
-	BasicUsername        string
-	BasicPassword        string
 }
 
 func instrumentHandler(handlerName string, handler http.HandlerFunc) http.HandlerFunc {
@@ -245,8 +243,6 @@ func New(logger log.Logger, o *Options) *Handler {
 		h.testReady,
 		h.options.TSDB,
 		h.options.EnableAdminAPI,
-		h.options.BasicUsername,
-		h.options.BasicPassword,
 	)
 
 	if o.RoutePrefix != "/" {

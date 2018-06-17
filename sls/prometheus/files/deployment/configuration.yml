@@ -325,7 +325,7 @@ default_conf:
           description: "{{`The number of bits available in the entropy pool over the last 10 minutes has remained below {{ $value }} which is very low. A depleted entropy pool will cause applications that read from /dev/random to block. Consider installing and configuring haveged to inject more entropy into the pool.`}}"
       # Alert if the disk is predicted to fill up in 2 weeks.
       - alert: HostDiskWillFillIn2Weeks
-        expr: predict_linear(node_filesystem_usage_percent{}[7d], 60 * 60 * 24 * 14) >= 100
+        expr: predict_linear(node_filesystem_usage_percent{mountpoint!="/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
         for: 10m
         labels:
           severity: p1

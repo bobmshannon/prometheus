@@ -460,6 +460,10 @@ discovery:
       role: rulemanager
       select: alert_rules_file
   produces:
+    sls:
+      role: sls
+      skylab_node:
+        home-dir: '{{ service_home }}'
     prometheus:
       external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}'

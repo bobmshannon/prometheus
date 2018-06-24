@@ -42,7 +42,7 @@ default_conf:
         labels:
           severity: p1
         annotations:
-          description: "{{`The last configuration reload of Prometheus ({{ $label.instance }}) failed. This indicates that the configuration file on disk is invalid and that Prometheus will fail to start successfully if restarted.`}}"
+          description: "{{`The last configuration reload of Prometheus ({{ $labels.instance }}) failed. This indicates that the configuration file on disk is invalid and that Prometheus will fail to start successfully if restarted.`}}"
           summary: "{{`Live-reload of Prometheus configuration failed`}}"
       ## Alert if the Prometheus notification queue is running full.
       - alert: PrometheusNotificationQueueRunningFull
@@ -178,13 +178,13 @@ default_conf:
       rules:
       # Page if a sls-service reports an non-healthy state.
       - alert: SLSServiceNotHealthy
-        expr: haruspex_slshealthstatus_value != 200
-        for: 5m
-        labels:
-          severity: p0
         annotations:
           description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. To see the entire check result message, please login to Gemini and view the service's health status information.`}}"
-          summary: "{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}"
+          summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
+        expr: 'haruspex_slshealthstatus_value{product!="hardware-health-status"} != 200'
+        for: 10m
+        labels:
+          severity: p0
     ##
     ## The set of system baseline rules evaluated by Prometheus.
     ##
@@ -278,6 +278,15 @@ default_conf:
         annotations:
           summary: "{{`File handles usage on {{ $labels.instance }} is predicted to be depleted in 4 hours`}}"
           description: "{{`At current rate of usage the number of available file handles on host {{ $labels.instance }} is predicted to be depleted within the next 4 hours. This indicates that one or more processes have a large number of files open.`}}"
+      # Alert if the host is running on degraded hardware.
+      - alert: HostHardwareDegraded
+        annotations:
+          description: "{{`The underlying hardware on {{ $labels.host }} is running in a degraded state.{{ if $labels.type }} The check type {{ $labels.type }} is reporting {{ $labels.state }}.{{ end }}. To see the entire check result message, please login to Gemini and view the health status information for the hardware-health-status service.`}}"
+          summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
+        expr: 'haruspex_slshealthstatus_value{product="hardware-health-status"} != 200'
+        for: 5m
+        labels:
+          severity: p1
       # Alert if the host is experiencing memory pressure.
       - alert: HostMemoryPressure
         expr: node_memory_available_percent <= 5 and rate(node_vmstat_pgmajfault[5m]) > 1024

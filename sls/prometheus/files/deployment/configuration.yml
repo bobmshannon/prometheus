@@ -524,8 +524,7 @@ discovery:
             statements:
               - condition:
                   groupNames:
-                    - Fire Engine Administrators
-                    - Skylab Administrators
+                    - Haruspex Administrators
                   matchType: ANY
                   realm: palantir
                   type: GroupNameCondition

@@ -524,7 +524,7 @@ discovery:
             statements:
               - condition:
                   groupNames:
-                    - Haruspex Administrators
+                    - Skylab Administrators
                   matchType: ANY
                   realm: palantir
                   type: GroupNameCondition

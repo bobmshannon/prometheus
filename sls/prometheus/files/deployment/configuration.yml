@@ -308,15 +308,6 @@ default_conf:
         annotations:
           summary: "{{`Clock unsynchronized on {{ $labels.instance }}`}}"
           description: "{{`The system clock on {{ $labels.instance }} is not synchronized with an NTP server.`}}"
-      # Alert if the NTP sanity check fails.
-      - alert: HostNTPSanity
-        expr: node_ntp_sanity == 0
-        for: 5m
-        labels:
-          severity: p1
-        annotations:
-          summary: "{{`NTP sanity check failed on {{ $labels.instance }}`}}"
-          description: "{{`The NTP sanity check run on {{ $labels.instance }} failed. This indicates that there is a large offset between the local clock and configured NTP server(s), or the root synchronization distance with the NTP server(s) is excessively high. In both cases this means that the local clock time is likely inaccurate and different NTP server(s) should be used.`}}"
       # Alert if the textfile collector encounters errors.
       - alert: HostTextfileCollectorErrors
         expr: node_textfile_scrape_error > 0
@@ -328,13 +319,13 @@ default_conf:
           description: "{{`One or more errors occurred while opening or reading textfile(s) on {{ $labels.instance }}. This indicates that some metrics being placed into the textfile(s) are not being exported and scraped by Prometheus as expected.`}}"
       # Page if the host has a low amount of entropy.
       - alert: HostLowEntropy
-        expr: node_entropy_available_bits <= 256
-        for: 10m
+        expr: node_entropy_available_bits <= 128
+        for: 30m
         labels:
           severity: p1
         annotations:
           summary: "{{`Low entropy on host {{ $labels.instance }}`}}"
-          description: "{{`The number of bits available in the entropy pool over the last 10 minutes has remained below {{ $value }} which is very low. A depleted entropy pool will cause applications that read from /dev/random to block. Consider installing and configuring haveged to inject more entropy into the pool.`}}"
+          description: "{{`The number of bits available in the entropy pool over the last 30 minutes has remained below {{ $value }} which is very low. A depleted entropy pool will cause applications that read from /dev/random to block. Consider installing and configuring haveged to inject more entropy into the pool.`}}"
       # Alert if the disk is predicted to fill up in 2 weeks.
       - alert: HostDiskWillFillIn2Weeks
         expr: predict_linear(node_filesystem_usage_percent{mountpoint!="/tmp"}[7d], 60 * 60 * 24 * 14) >= 100

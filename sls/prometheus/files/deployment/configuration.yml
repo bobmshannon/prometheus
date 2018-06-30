@@ -490,7 +490,7 @@ default_conf:
           severity: p1
         annotations:
           summary: "{{`Name Node {{ $labels.instance }} checkpoint time was more than 3 days ago`}}"
-          description: "{{`The last checkpoint time was more than 3 days ago which is not recent enough. This can occur if check points are failing for some reason. Leaving this unresolved will cause the edit log to grow over time which can cause disks to fill and very long startup times when Name Node is restarted and subsequently applied the edit logs to fsimage.`}}"
+          description: "{{`The last checkpoint time was more than 3 days ago which is not recent enough. This can occur if check points are failing for some reason. Leaving this unresolved will cause the edit log to grow over time which can cause disks to fill and long startup times from the edit log being applied to fsimage when Name Node is restarted.`}}"
   # DEPRECATED: Optionally discover a list of monitored hosts through Skylab service discovery.
   # If results are discovered, a default set of system baseline alerts are generated
   # using metrics that are pushed into Haruspex by a palantir metrics agent such as Caelumd.

@@ -184,7 +184,7 @@ default_conf:
         annotations:
           description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. To see the entire check result message, please login to Gemini and view the service's health status information.`}}"
           summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
-        expr: 'haruspex_slshealthstatus_value{product!="hardware-health-status"} != 200'
+        expr: 'haruspex_slshealthstatus_value{product!="hardware-health-status",type!="SERVICE_DEPENDENCY"} != 200'
         for: 10m
         labels:
           severity: p0

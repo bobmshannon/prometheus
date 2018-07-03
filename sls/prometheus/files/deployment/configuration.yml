@@ -284,7 +284,7 @@ default_conf:
       # Alert if the host is running on degraded hardware.
       - alert: HostHardwareDegraded
         annotations:
-          description: "{{`The underlying hardware on {{ $labels.host }} is running in a degraded state.{{ if $labels.type }} The check type {{ $labels.type }} is reporting {{ $labels.state }}.{{ end }}. To see the entire check result message, please login to Gemini and view the health status information for the hardware-health-status service.`}}"
+          description: "{{`The underlying hardware on {{ $labels.host }} is running in a degraded state.{{ if $labels.type }} The check type {{ $labels.type }} is reporting {{ $labels.state }}{{ end }}. To see the entire check result message, please login to Gemini and view the health status information for the hardware-health-status service.`}}"
           summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
         expr: 'haruspex_slshealthstatus_value{product="hardware-health-status"} != 200'
         for: 5m

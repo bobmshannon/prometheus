@@ -483,14 +483,6 @@ default_conf:
         annotations:
           summary: "{{`HDFS has {{ $value }} corrupt blocks`}}"
           description: "{{`The Name Node installed on {{ $labels.instance }} is reported that blocks missing and/or corrupt. Use 'hdfs fsck' to diagnose the issue further and determine which files are affected.`}}"
-      # Alert if the last checkpoint time was not recent enough.
-      - alert: HDFSLastCheckpointTime
-        expr: time() - namenode_LastCheckpointUnixTime > 60 * 60 * 72 # 60 seconds * 60 minutes * 72 hours = 3 days
-        labels:
-          severity: p1
-        annotations:
-          summary: "{{`Name Node {{ $labels.instance }} checkpoint time was more than 3 days ago`}}"
-          description: "{{`The last checkpoint time was more than 3 days ago which is not recent enough. This can occur if check points are failing for some reason. Leaving this unresolved will cause the edit log to grow over time which can cause disks to fill and long startup times from the edit log being applied to fsimage when Name Node is restarted.`}}"
   # DEPRECATED: Optionally discover a list of monitored hosts through Skylab service discovery.
   # If results are discovered, a default set of system baseline alerts are generated
   # using metrics that are pushed into Haruspex by a palantir metrics agent such as Caelumd.

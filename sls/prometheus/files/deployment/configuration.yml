@@ -404,7 +404,7 @@ default_conf:
       rules:
       # Page if a HDFS Name Node is unavailable.
       - alert: HDFSNameNodeDown
-        expr: namenode_Down == 1
+        expr: namenode_down == 1
         for: 10m
         labels:
           severity: p0

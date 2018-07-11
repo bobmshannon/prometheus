@@ -413,7 +413,7 @@ default_conf:
           description: "{{`The Name Node {{ $labels.instance }} target is unreachable which indicates that the Name Node is down or in an unhealthy state.`}}"
       # Page if less than 80% of the HDFS Data Nodes are available.
       - alert: HDFSDataNodesAvailable
-        expr: namenode_LiveDataNodes/(namenode_StaleDataNodes+namenode_DeadDataNodes+namenode_LiveDataNodes) < 0.80
+        expr: namenode_live_data_nodes_total/(namenode_stale_data_nodes_total+namenode_dead_data_nodes_total+namenode_live_data_nodes_total) < 0.80
         for: 30m
         labels:
           severity: p0
@@ -422,7 +422,7 @@ default_conf:
           description: "{{`The total number of available Data Nodes has remained below 80% over the last 30 minutes. The current percent of available Data Nodes is {{ $value | printf '%.2f' }}%. This indicates that the cluster is operating with degraded capacity.`}}"
       # Page if the Name Node is experiencing memory pressure.
       - alert: HDFSNameNodeMemoryPressure
-        expr: (quantile_over_time(0.5, namenode_heapMemoryUsageUsed{}[15m]) / namenode_heapMemoryUsageMax > 0.95) and (increase(namenode_ConcurrentMarkSweep_CollectionCount{}[15m]) > 0)
+        expr: (quantile_over_time(0.5, namenode_heap_usage_bytes{}[15m]) / namenode_heap_usage_max_bytes > 0.95) and (increase(namenode_cms_collection_count{}[15m]) > 0)
         for: 15m
         labels:
           severity: p0
@@ -431,7 +431,7 @@ default_conf:
           description: "{{`The median heap usage for the Name Node installed on {{ $labels.instance }} has remained over 95% through one or more old GC collections over the past 15 minutes. A failing Name Node will render HDFS unavailable and therefore steps should be taken to reduce memory usage or increase the heap size of the Name Node to ensure that cluster continues to operate reliably.`}}"
       # Page if the Name Node has one or more failed directories.
       - alert: HDFSNameNodeFailedDirectories
-        expr: namenode_FailedDirs > 1
+        expr: namenode_failed_dirs_total > 1
         for: 5m
         labels:
           severity: p0
@@ -440,7 +440,7 @@ default_conf:
           description: "{{`The Name Node installed on {{ $labels.instance }} has {{ $value }} failed directories. For more information about which directories have failed, check the Name Node UI.`}}"
       # Alert if a Data Node has one or more failed volumes.
       - alert: HDFSFailedVolumes
-        expr: datanode_FailedVolumes > 0
+        expr: datanode_failed_volumes_total > 0
         for: 5m
         labels:
           severity: p1
@@ -449,7 +449,7 @@ default_conf:
           description: "{{`The Data Node installed on {{ $labels.instance }} has {{ $value }} failed volumes. This is an indicator that one or more of the underlying physical disks (e.g. if using JBOD) have failed and should be replaced.`}}"
       # Alert if Safemode is enabled.
       - alert: HDFSSafeModeEnabled
-        expr: namenode_SafeMode == 1
+        expr: namenode_safemode == 1
         for: 15m
         labels:
           severity: p1
@@ -458,7 +458,7 @@ default_conf:
           description: "{{`The NameNode installed on {{ $labels.instance }} is in safemode. Writes will fail while safemode is enabled therefore safemode should be disabled so that the cluster is able to serve all requests.`}}"
       # Alert if HDFS is running low on capacity.
       - alert: HDFSLowCapacityRemaining
-        expr: 100-(namenode_CapacityUsed*100/namenode_CapacityTotal) < 10
+        expr: 100-(namenode_capacity_used_blocks*100/namenode_capacity_total_blocks) < 10
         for: 5m
         labels:
           severity: p1
@@ -467,7 +467,7 @@ default_conf:
           description: "{{`HDFS has only {{ $value | printf '%.2f' }}% free capacity remaining. Consider reducing usage or plan to provision additional Data Nodes in the future.`}}"
       # Alert if HDFS is forecast to run out of capacity in one month.
       - alert: HDFSWillRunOutOfCapacityIn1Month
-        expr: predict_linear(namenode_CapacityRemaining{}[14d], 60 * 60 * 24 * 30) <= 0
+        expr: predict_linear(namenode_capacity_used_blocks{}[14d], 60 * 60 * 24 * 30) <= 0
         for: 10m
         labels:
           severity: p1
@@ -476,7 +476,7 @@ default_conf:
           description: "{{`Based on the last 2 weeks of usage, HDFS is forecast to run out of blocks in a month. This is a strong indicator that the cluster is at risk of running out of available blocks and that steps should be taken to free up additional blocks and/or provision additional Data Nodes.`}}"
       # Alert if HDFS contains corrupt or missing blocks.
       - alert: HDFSCorruptOrMissingBlocks
-        expr: namenode_CorruptBlocks > 0 or HDFSMissingBlocks > 0
+        expr: namenode_corrupt_blocks_total > 0 or namenode_missing_blocks_total > 0
         for: 5m
         labels:
           severity: p1

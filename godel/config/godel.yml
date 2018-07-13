@@ -1,18 +1,3 @@
-tasks-config-providers:
-  resolvers:
-    - https://publish.artifactory.palantir.build/artifactory/internal-dist-release/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}.yml
-  providers:
-    - locator:
-        id: com.palantir.di-godel-config:di-godel-config:1.3.0
-plugins:
-  resolvers:
-    - https://palantir.bintray.com/releases/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}-{{OS}}-{{Arch}}.tgz
-  plugins:
-    - locator:
-        id: com.palantir.godel-generate-plugin:generate-plugin:1.0.0
-        checksums:
-          darwin-amd64: 62d08d2baa31d295e12ec04214d0f3a2faa32a12fe8c1a45cb8ce28fa0e71eef
-          linux-amd64: 8bb81d7479e4f6985ba8b93e0bf56ae67d87b0d49a92f053b2d477401cb47524
 exclude:
   names:
     - "\\..+"

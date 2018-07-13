@@ -60,7 +60,7 @@ deployment:
       ./godelw publish artifactory \
           --url "https://artifactory.palantir.build" \
           --repository internal-dist-release \
-          --user "$ARTIFACTORY_USERNAME" \
+          --username "$ARTIFACTORY_USERNAME" \
           --password "$ARTIFACTORY_PASSWORD"
   snapshot:
     branch:
@@ -72,5 +72,5 @@ deployment:
       ./godelw publish artifactory \
           --url "https://artifactory.palantir.build" \
           --repository internal-dist-snapshot \
-          --user "$ARTIFACTORY_USERNAME" \
+          --username "$ARTIFACTORY_USERNAME" \
           --password "$ARTIFACTORY_PASSWORD"

@@ -48,7 +48,7 @@ test:
     - cd "$PROJECT_PATH" && ./godelw test
     - cd "$PROJECT_PATH" && ./godelw dist
   post:
-    - cp -r -v "$PROJECT_PATH"/out/dist/* "$CIRCLE_ARTIFACTS"/
+    - cp -r -v "$PROJECT_PATH"/sls/**/dist/* "$CIRCLE_ARTIFACTS"/
 
 deployment:
   release:

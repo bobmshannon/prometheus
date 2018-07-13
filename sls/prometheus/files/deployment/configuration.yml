@@ -158,7 +158,7 @@ default_conf:
       rules:
       # Alert if the sink stops processing metrics.
       - alert: SinkNotIngestingMetrics
-        expr: rate(haruspex_sink_metrics_processed:count{}[5m]) == 0
+        expr: rate(sink_metrics_processed:count{}[5m]) == 0
         for: 10m
         labels:
           severity: p1
@@ -167,13 +167,13 @@ default_conf:
           summary: "{{`Sink not ingesting {{ $labels.input }} metrics`}}"
       # Alert if the sink stops emitting telemetry.
       - alert: SinkNoData
-        expr: absent(haruspex_sink_metrics_processed:count) == 1
+        expr: absent(sink_metrics_processed:count) == 1
         for: 10m
         labels:
           severity: p1
         annotations:
-          description: "The Sink installed on {{ discovered.haruspex-sink.hostname }} has stopped emitting metrics. This indicates that the Sink is not running, is in an unhealthy state, or that metrics agents (e.g. caelumd) are no longer functioning correctly."
-          summary: "Sink installed on {{ discovered.haruspex-sink.hostname }} stopped emitting metrics"
+          description: "The Sink installed on {{ discovered.prometheus-sink.hostname }} has stopped emitting metrics. This indicates that the Sink is not running, is in an unhealthy state, or that metrics agents (e.g. caelumd) are no longer functioning correctly."
+          summary: "Sink installed on {{ discovered.prometheus-sink.hostname }} stopped emitting metrics"
     ##
     ## The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
     ##
@@ -184,7 +184,7 @@ default_conf:
         annotations:
           description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. To see the entire check result message, please login to Gemini and view the service's health status information.`}}"
           summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
-        expr: 'haruspex_slshealthstatus_value{product!="hardware-health-status",type!="SERVICE_DEPENDENCY"} != 200'
+        expr: 'slshealthstatus_value{product!="hardware-health-status",type!="SERVICE_DEPENDENCY"} != 200'
         for: 10m
         labels:
           severity: p0
@@ -286,7 +286,7 @@ default_conf:
         annotations:
           description: "{{`The underlying hardware on {{ $labels.host }} is running in a degraded state.{{ if $labels.type }} The check type {{ $labels.type }} is reporting {{ $labels.state }}{{ end }}. To see the entire check result message, please login to Gemini and view the health status information for the hardware-health-status service.`}}"
           summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
-        expr: 'haruspex_slshealthstatus_value{product="hardware-health-status"} != 200'
+        expr: 'slshealthstatus_value{product="hardware-health-status"} != 200'
         for: 5m
         labels:
           severity: p1
@@ -531,8 +531,8 @@ discovery:
       all: true
       role: alertmanager
       select: endpoint
-    haruspex-sink:
-      role: haruspex-sink
+    prometheus-sink:
+      role: prometheus-sink
     metrics-agent:
       all: false
       role: metrics-agent

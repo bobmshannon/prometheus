@@ -1,4 +1,4 @@
-group-id: com.palantir.haruspex
+group-id: com.palantir.srx.prometheus
 products:
   prometheus:
     build:
@@ -68,7 +68,7 @@ products:
       info:
         type: sls
         data:
-          group-id: com.palantir.haruspex
+          group-id: com.palantir.srx.prometheus
           manifest-extensions:
             no-stop: true
             restart-cron: true

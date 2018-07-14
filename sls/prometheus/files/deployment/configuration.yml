@@ -361,15 +361,6 @@ default_conf:
         annotations:
           summary: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days`}}"
           description: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days which likely indicates that the currently installed and running kernel is out of date.`}}"
-      # Alert if amount of memory allocated to the page cache is very low.
-      - alert: HostPageCacheSize
-        expr: node_uptime_days > 7 and (node_memory_Cached_bytes/node_memory_MemTotal_bytes) < 0.10
-        for: 10m
-        labels:
-          severity: p2
-        annotations:
-          summary: "{{`Memory allocated to page cache on {{ $labels.instance }} is low`}}"
-          description: "{{`Less than 10% of total physical memory is allocated to the page cache on {{ $labels.instance }}. This indicates that the host is potentially oversubscribed and that applications are not able to take full advantage of the I/O performance benefits associated with page caching.`}}"
       # Alert if CPU usage is excessively high for an extended period of time.
       - alert: HostHighCPUUsage
         expr: 100-sum(node_cpu_usage_percent{mode=~"idle|iowait"}) by (instance) > 85

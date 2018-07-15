@@ -243,7 +243,7 @@ default_conf:
           description: "{{`The filesystem mounted at {{ $labels.mountpoint }} and backed by the {{ $labels.device }} device is currently at {{ $value }}% usage and is very close to running out of space.`}}"
       # Page if the disk is predicted to fill up in 4 hours.
       - alert: HostDiskWillFillIn4Hours
-        expr: predict_linear(node_filesystem_usage_percent{mountpoint!="/tmp"}[1h], 60 * 60 * 4) >= 100
+        expr: predict_linear(node_filesystem_usage_percent{mountpoint!="/tmp"}[1h], 60 * 60 * 4) >= 100 and on(instance, job) (time() - node_installation_time_seconds > 3600)
         for: 10m
         labels:
           severity: p0
@@ -260,7 +260,7 @@ default_conf:
           description: "{{`Inode usage percent on {{ $labels.instance }} for the filesystem mounted on {{ $labels.mountpoint }} is {{ $value }}% which at or near depletion. This indicates that there is an abnormally large number of files stored on the filesystem, usually caused by one or more applications creating many files without cleaning them up afterwards.`}}"
       # Page if the number of inodes available in a filesystem is predicted to be depleted within the next 4 hours.
       - alert: HostInodesDepletedIn4Hours
-        expr: predict_linear(node_filesystem_inodes_usage_percent[1h], 60 * 60 * 4) >= 100
+        expr: predict_linear(node_filesystem_inodes_usage_percent[1h], 60 * 60 * 4) >= 100 and on(instance, job) (time() - node_installation_time_seconds > 3600)
         labels:
           severity: p0
         annotations:
@@ -276,7 +276,7 @@ default_conf:
           description: "{{`File handles usage on {{ $labels.instance }} is currently {{ $value }}% which is at or near depletion. This indicates that one or more processes have a large number of files open.`}}"
       # Page if the open files limit will be depleted within the next 4 hours.
       - alert: HostOpenFilesDepletedIn4Hours
-        expr: predict_linear(node_filefd_usage_percent[1h], 60 * 60 * 4) >= 100
+        expr: predict_linear(node_filefd_usage_percent[1h], 60 * 60 * 4) >= 100 and on(instance, job) (time() - node_installation_time_seconds > 3600)
         labels:
           severity: p0
         annotations:
@@ -329,7 +329,7 @@ default_conf:
           description: "{{`The number of bits available in the entropy pool over the last 30 minutes has remained below {{ $value }} which is very low. A depleted entropy pool will cause applications that read from /dev/random to block. Consider installing and configuring haveged to inject more entropy into the pool.`}}"
       # Alert if the disk is predicted to fill up in 2 weeks.
       - alert: HostDiskWillFillIn2Weeks
-        expr: predict_linear(node_filesystem_usage_percent{mountpoint!="/tmp"}[7d], 60 * 60 * 24 * 14) >= 100
+        expr: predict_linear(node_filesystem_usage_percent{mountpoint!="/tmp"}[7d], 60 * 60 * 24 * 14) >= 100 and on(instance, job) (time() - node_installation_time_seconds > 3600 * 24 * 7)
         for: 10m
         labels:
           severity: p1

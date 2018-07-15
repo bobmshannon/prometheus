@@ -402,7 +402,7 @@ default_conf:
           severity: p0
         annotations:
           summary: "{{`Name Node {{ $labels.instance }} is down`}}"
-          description: "{{`The Name Node {{ $labels.instance }} target is unreachable which indicates that the Name Node is down or in an unhealthy state.`}}"
+          description: "{{`The Name Node monitored by {{ $labels.instance }} is down. Unless HA is configured an unreachable Name Node will render HDFS inaccessible.`}}"
       # Page if less than 80% of the HDFS Data Nodes are available.
       - alert: HDFSDataNodesAvailable
         expr: namenode_live_data_nodes_total/(namenode_stale_data_nodes_total+namenode_dead_data_nodes_total+namenode_live_data_nodes_total) < 0.80

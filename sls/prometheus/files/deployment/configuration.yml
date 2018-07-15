@@ -12,6 +12,7 @@ default_conf:
     WEB_LISTEN_ADDRESS: '{{ conf.prometheus.address }}:{{ conf.prometheus.port }}'
     WEB_PROTOCOL: '{{ conf.prometheus.protocol }}'
     WEB_ROUTE_PREFIX: '{{ conf.prometheus.context_path }}'
+    RETENTION_PERIOD: '{{ conf.prometheus.retention_period }}'
   logrotate:
     files:
       - filepath: '{{ conf.ENV.LOG_FILE }}'
@@ -501,6 +502,7 @@ default_conf:
     key_file: '{{ ssl.pem_path }}'
     ca_file: '{{ ssl.ca_path }}'
     prometheus_metrics: '{{ discovered.prometheus-metrics }}'
+    retention_period: 15d
     scrape_interval: 30s
     scrape_timeout: 30s
     alert_relabel_configs:

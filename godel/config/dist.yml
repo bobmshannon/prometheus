@@ -54,7 +54,7 @@ products:
         type: sls
         info:
           reloadable: true
-          service-args: --config.file=$CONFIG_FILE --storage.tsdb.path=$STORAGE_TSDB_PATH --web.listen-address=$WEB_LISTEN_ADDRESS --web.certificate-file=$WEB_CERTIFICATE_FILE --web.key-file=$WEB_KEY_FILE --web.ca-file=$WEB_CA_FILE --web.protocol=$WEB_PROTOCOL --web.external-url=$WEB_EXTERNAL_URL --web.route-prefix=$WEB_ROUTE_PREFIX --log.level=$LOG_LEVEL --web.enable-lifecycle --web.enable-admin-api
+          service-args: --config.file=$CONFIG_FILE --storage.tsdb.path=$STORAGE_TSDB_PATH --web.listen-address=$WEB_LISTEN_ADDRESS --web.certificate-file=$WEB_CERTIFICATE_FILE --web.key-file=$WEB_KEY_FILE --web.ca-file=$WEB_CA_FILE --web.protocol=$WEB_PROTOCOL --web.external-url=$WEB_EXTERNAL_URL --web.route-prefix=$WEB_ROUTE_PREFIX --log.level=$LOG_LEVEL --storage.tsdb.retention=$RETENTION_PERIOD --web.enable-lifecycle --web.enable-admin-api
           manifest-extensions:
             no-stop: false
             restart-cron: true

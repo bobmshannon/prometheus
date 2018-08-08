@@ -493,6 +493,7 @@ default_conf:
     key_file: '{{ ssl.pem_path }}'
     ca_file: '{{ ssl.ca_path }}'
     prometheus_metrics: '{{ discovered.prometheus-metrics }}'
+    blackbox_exporter: '{{ discovered.blackbox-exporter }}'
     retention_period: 15d
     scrape_interval: 30s
     scrape_timeout: 30s
@@ -524,6 +525,10 @@ discovery:
     prometheus-metrics:
       all: true
       role: prometheus-metrics
+      stack: '*'
+    blackbox-exporter:
+      all: true
+      role: blackbox-exporter
       stack: '*'
     prometheus-alerts:
       all: true

@@ -72,6 +72,88 @@ scrape_configs:
       {{ end -}}
     {{ end -}}
 {{ end }}{{ end }}
+  {{ if .conf.prometheus.blackbox_exporter }}{{ range $.conf.prometheus.blackbox_exporter }}
+  {{ $scheme := .scheme }}
+  {{ if .probes  }}{{ range .probes }}
+  {{ if ne (len .targets) 0 }}
+  - job_name: {{ .name }}
+    metrics_path: {{ .metrics_path }}
+    tls_config:
+      ca_file: {{ $.conf.prometheus.ca_file }}
+      cert_file: {{ $.conf.prometheus.certificate_file }}
+      key_file: {{ $.conf.prometheus.key_file }}
+    params:
+        module: {{ .module }}
+    scheme: {{ $scheme }}
+    static_configs:
+      - targets:
+        {{ range .targets -}}
+        - {{ . }}
+        {{ end -}}
+    {{ if .scrape_interval }}
+    scrape_interval: {{ .scrape_interval }}
+    {{ end }}
+    {{ if .scrape_timeout }}
+    scrape_timeout: {{ .scrape_timeout }}
+    {{ end }}
+    {{ if .metric_relabel_configs }}metric_relabel_configs:
+      {{ range $relabel_config := .metric_relabel_configs -}}
+      {{ if $relabel_config.source_labels -}}
+      - source_labels:
+        {{ range $label := $relabel_config.source_labels }}- {{ $label }}
+        {{ end }}
+      {{ end }}
+        {{ if $relabel_config.target_label }}target_label: {{ .target_label }}
+        {{ end -}}
+        {{ if $relabel_config.regex }}regex: {{ .regex }}
+        {{ end -}}
+        {{ if $relabel_config.replacement }}replacement: {{ .replacement }}
+        {{ end -}}
+        {{ if $relabel_config.action }}action: {{ .action }}
+        {{ end -}}
+        {{ if $relabel_config.separator }}separator: {{ .separator }}
+        {{ end -}}
+      {{ end }}
+    {{ end }}
+    {{ if .relabel_config }}relabel_configs:
+      {{ range $relabel_config := .relabel_config -}}
+      {{ if $relabel_config.source_labels -}}
+      - source_labels:
+        {{ range $label := $relabel_config.source_labels }}- {{ $label }}
+        {{ end }}
+        {{ if $relabel_config.target_label }}target_label: {{ .target_label }}
+        {{ end -}}
+        {{ if $relabel_config.regex }}regex: {{ .regex }}
+        {{ end -}}
+        {{ if $relabel_config.replacement }}replacement: {{ .replacement }}
+        {{ end -}}
+        {{ if $relabel_config.action }}action: {{ .action }}
+        {{ end -}}
+        {{ if $relabel_config.separator }}separator: {{ .separator }}
+        {{ end -}}
+      {{ else if $relabel_config.target_label }}
+      - target_label: {{ .target_label }}
+        {{ if $relabel_config.regex }}regex: {{ .regex }}
+        {{ end -}}
+        {{ if $relabel_config.replacement }}replacement: {{ .replacement }}
+        {{ end -}}
+        {{ if $relabel_config.action }}action: {{ .action }}
+        {{ end -}}
+        {{ if $relabel_config.separator }}separator: {{ .separator }}
+        {{ end -}}
+      {{ end }}
+      {{ end }}
+    {{ end }}
+    {{ if .params }}params:
+      {{ range $paramKey, $paramList := .params -}}
+      {{ $paramKey }}:
+        {{ range $paramList }}- {{ . }}
+        {{ end }}
+      {{ end -}}
+    {{ end -}}
+  {{ end }}
+{{ end }}{{ end }}
+{{ end }}{{ end }}
 alerting:
   {{ if .conf.prometheus.alert_relabel_configs }}alert_relabel_configs:
     {{ range .conf.prometheus.alert_relabel_configs }}

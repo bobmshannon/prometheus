@@ -1,22 +1,11 @@
 working_dir: &working_dir
   working_directory: /go/src/github.com/prometheus/prometheus
 
-darwin-linux-no-cgo: &darwin-linux-no-cgo
+circleci-golang: &circleci-golang
   <<: *working_dir
   docker:
-    - image: nmiyake/go:go-darwin-linux-no-cgo-1.10.3-t130
-      environment:
-        CGO_ENABLED: 0
-
-godel-cache-restore: &godel-cache-restore
-  restore_cache:
-    keys:
-      - &godel-cache-key godel-cache-{{ checksum "godelw" }}-{{ checksum "godel/config/godel.yml" }}-v1
-godel-cache-save: &godel-cache-save
-  save_cache:
-    key: *godel-cache-key
-    paths:
-      - ~/.godel
+  - image: circleci/golang:1.10
+  resource_class: large
 
 go-version: &go-version
   run: go version
@@ -42,7 +31,6 @@ store-artifacts: &store-artifacts
 publish_steps: &publish_steps
   - checkout
   - *go-version
-  - *godel-cache-restore
   - *godel-version
   - restore_cache:
       keys:
@@ -52,38 +40,30 @@ publish_steps: &publish_steps
 version: 2
 jobs:
   test:
-    <<: *darwin-linux-no-cgo
+    <<: *circleci-golang
     steps:
       - checkout
-      - *go-version
-      - *godel-cache-restore
-      - *godel-version
-      - *godel-cache-save
-      - *define-tests-dir
-      - *mkdir-tests-dir
-      - run: ./godelw test --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
-      - *store-test-results
-      - *store-artifacts
+      - run: make promu
+      - run: make check_license style unused staticcheck build
+      - run: rm -v prometheus
   dist:
-    <<: *darwin-linux-no-cgo
+    <<: *circleci-golang
     steps:
       - checkout
       - *go-version
-      - *godel-cache-restore
       - *godel-version
-      - *godel-cache-save
       - run: ./godelw dist
       - save_cache:
           key: *out-cache-key
           paths:
             - out
   publish-release:
-    <<: *darwin-linux-no-cgo
+    <<: *circleci-golang
     environment:
       PUBLISH_REPO: internal-dist-release
     steps: *publish_steps
   publish-snapshot:
-    <<: *darwin-linux-no-cgo
+    <<: *circleci-golang
     environment:
       PUBLISH_REPO: internal-dist-snapshot
     steps: *publish_steps

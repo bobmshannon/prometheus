@@ -1,0 +1,124 @@
+working_dir: &working_dir
+  working_directory: /go/src/github.com/prometheus/prometheus
+
+darwin-linux-no-cgo: &darwin-linux-no-cgo
+  <<: *working_dir
+  docker:
+    - image: nmiyake/go:go-darwin-linux-no-cgo-1.10.3-t130
+      environment:
+        CGO_ENABLED: 0
+
+godel-cache-restore: &godel-cache-restore
+  restore_cache:
+    keys:
+      - &godel-cache-key godel-cache-{{ checksum "godelw" }}-{{ checksum "godel/config/godel.yml" }}-v1
+godel-cache-save: &godel-cache-save
+  save_cache:
+    key: *godel-cache-key
+    paths:
+      - ~/.godel
+
+go-version: &go-version
+  run: go version
+
+godel-version: &godel-version
+  run: ./godelw version
+
+define-tests-dir: &define-tests-dir
+  run: echo 'export TESTS_DIR=/tmp/test-results' >> $BASH_ENV
+
+mkdir-tests-dir: &mkdir-tests-dir
+  run: mkdir -p "${TESTS_DIR}"
+
+store-test-results: &store-test-results
+  type: test-results-store
+  path: /tmp/test-results
+
+store-artifacts: &store-artifacts
+  type: artifacts-store
+  path: /tmp/test-results
+  destination: test-results
+
+publish_steps: &publish_steps
+  - checkout
+  - *go-version
+  - *godel-cache-restore
+  - *godel-version
+  - restore_cache:
+      keys:
+        - &out-cache-key out-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ .Environment.CIRCLE_SHA1 }}-v1
+  - run: ./godelw publish artifactory --url https://artifactory.palantir.build --repository "$PUBLISH_REPO" --user "$ARTIFACTORY_USERNAME" --password "$ARTIFACTORY_PASSWORD"
+
+version: 2
+jobs:
+  test:
+    <<: *darwin-linux-no-cgo
+    steps:
+      - checkout
+      - *go-version
+      - *godel-cache-restore
+      - *godel-version
+      - *godel-cache-save
+      - *define-tests-dir
+      - *mkdir-tests-dir
+      - run: ./godelw test --junit-output="$TESTS_DIR/$CIRCLE_PROJECT_REPONAME-tests.xml"
+      - *store-test-results
+      - *store-artifacts
+  dist:
+    <<: *darwin-linux-no-cgo
+    steps:
+      - checkout
+      - *go-version
+      - *godel-cache-restore
+      - *godel-version
+      - *godel-cache-save
+      - run: ./godelw dist
+      - save_cache:
+          key: *out-cache-key
+          paths:
+            - out
+  publish-release:
+    <<: *darwin-linux-no-cgo
+    environment:
+      PUBLISH_REPO: internal-dist-release
+    steps: *publish_steps
+  publish-snapshot:
+    <<: *darwin-linux-no-cgo
+    environment:
+      PUBLISH_REPO: internal-dist-snapshot
+    steps: *publish_steps
+
+### Workflows ###
+requires_jobs: &requires_jobs
+  - test
+  - dist
+
+all-tags-filter: &all-tags-filter
+  filters: { tags: { only: /.*/ } }
+
+workflows:
+  version: 2
+  dist-publish:
+    jobs:
+      - test:
+          <<: *all-tags-filter
+      - dist:
+          <<: *all-tags-filter
+      - publish-release:
+          requires: *requires_jobs
+          filters:
+            tags:
+              only: /^v?[0-9]+(\.[0-9]+)+(-rc[0-9]+)?$/
+            branches:
+              ignore: /.*/
+      - publish-snapshot:
+          requires: *requires_jobs
+          filters:
+            tags:
+              ignore: /.*/
+            branches:
+              only: develop
+
+notify:
+  webhooks:
+    - url: https://parana.palantir.build/hook

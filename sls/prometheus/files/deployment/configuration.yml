@@ -180,12 +180,21 @@ default_conf:
     ##
     - name: sls.rules
       rules:
-      # Page if a sls-service reports an non-healthy state.
+      # Notify if a sls-service reports an non-healthy state.
       - alert: SLSServiceNotHealthy
         annotations:
           description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a non-healthy state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. To see the entire check result message, please login to Gemini and view the service's health status information.`}}"
           summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
-        expr: 'slshealthstatus_value{product!="hardware-health-status",type!="SERVICE_DEPENDENCY"} != 200'
+        expr: 'slshealthstatus_value{product!="hardware-health-status",type!="SERVICE_DEPENDENCY",state=~"REPAIRING|WARNING"}'
+        for: 10m
+        labels:
+          severity: p1
+      # Page if a sls-service reports an non-healthy state.
+      - alert: SLSServiceCritical
+        annotations:
+          description: "{{`The SLS Service {{ $labels.product }} on host {{ $labels.host }} is reporting a critical state {{ $labels.state }}{{ if $labels.type }} for the check type {{ $labels.type }}{{ end }}. To see the entire check result message, please login to Gemini and view the service's health status information.`}}"
+          summary: '{{`{{ $labels.product }} is reporting {{ $labels.state }}`}}'
+        expr: 'slshealthstatus_value{product!="hardware-health-status",type!="SERVICE_DEPENDENCY",state!~"HEALTHY|DEFERRING|SUSPENDED|REPAIRING|WARNING"}'
         for: 10m
         labels:
           severity: p0

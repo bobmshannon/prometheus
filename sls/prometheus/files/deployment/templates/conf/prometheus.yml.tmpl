@@ -75,7 +75,7 @@ scrape_configs:
   {{ if .conf.prometheus.blackbox_exporter }}{{ range $.conf.prometheus.blackbox_exporter }}
   {{ $scheme := .scheme }}
   {{ if .probes  }}{{ range .probes }}
-  {{ if ne (len .targets) 0 }}
+  {{ if or (.targets) (and $.conf.prometheus.external_http_uris_probe .__external_http_uris_prober__) }}
   - job_name: {{ .name }}
     metrics_path: {{ .metrics_path }}
     tls_config:
@@ -90,6 +90,11 @@ scrape_configs:
         {{ range .targets -}}
         - {{ . }}
         {{ end -}}
+        {{ if and $.conf.prometheus.external_http_uris_probe .__external_http_uris_prober__ }}
+        {{ range $.conf.prometheus.external_http_uris_probe -}}
+        - {{ . }}
+        {{ end -}}
+        {{ end }}
     {{ if .scrape_interval }}
     scrape_interval: {{ .scrape_interval }}
     {{ end }}

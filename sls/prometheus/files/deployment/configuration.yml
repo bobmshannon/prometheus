@@ -475,6 +475,29 @@ default_conf:
         annotations:
           summary: "{{`HDFS has {{ $value }} corrupt blocks`}}"
           description: "{{`The Name Node installed on {{ $labels.instance }} is reported that blocks missing and/or corrupt. Use 'hdfs fsck' to diagnose the issue further and determine which files are affected.`}}"
+    ##
+    ## Set of rules for the blackbox_exporter service.
+    ##
+    - name: blackbox.rules
+      rules:
+      # Alert for any TLS certs due to expire
+      - alert: TLSCertExpiring
+        expr: (probe_ssl_earliest_cert_expiry - time())/86400 <= 15
+        labels:
+          severity: p2
+        annotations:
+          description: "{{`The TLS certificate for {{ $labels.instance }} is due to expire in {{ $value }} day(s). Reach out to the certificate authority and request that a new certificate be issued.`}}"
+          summary: "{{`TLS cert for {{ $labels.instance }} expires in {{ $value }} day(s)`}}"
+      # Alert if any probes are failing (e.g rc =! 2xx, no response, ect)
+      - alert: BlackboxProbeDown
+        expr: probe_success == 0
+        for: 15m
+        labels:
+          severity: p1
+        annotations:
+          description: "{{`{{ $labels.job }} targeting {{ $labels.instance }} has returned a non-zero return code for more than 15m.`}}"
+          summary: "{{`{{ $labels.job }} targeting {{ $labels.instance }} is failing`}}"
+
   # DEPRECATED: Optionally discover a list of monitored hosts through Skylab service discovery.
   # If results are discovered, a default set of system baseline alerts are generated
   # using metrics that are pushed into Prometheus by a palantir metrics agent such as Caelumd.
@@ -503,6 +526,7 @@ default_conf:
     ca_file: '{{ ssl.ca_path }}'
     prometheus_metrics: '{{ discovered.prometheus-metrics }}'
     blackbox_exporter: '{{ discovered.blackbox-exporter }}'
+    external_http_uris_probe: '{{ discovered.multipass-ext-uris }}'
     retention_period: 15d
     scrape_interval: 30s
     scrape_timeout: 30s
@@ -531,6 +555,9 @@ discovery:
       all: false
       role: metrics-agent
       stack: '*'
+    multipass-ext-uris:
+      role: multipass
+      select: external_uris
     prometheus-metrics:
       all: true
       role: prometheus-metrics

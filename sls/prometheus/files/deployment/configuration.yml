@@ -474,7 +474,7 @@ default_conf:
           severity: p1
         annotations:
           summary: "{{`HDFS has {{ $value }} corrupt blocks`}}"
-          description: "{{`The Name Node installed on {{ $labels.instance }} is reported that blocks missing and/or corrupt. Use 'hdfs fsck' to diagnose the issue further and determine which files are affected.`}}"
+          description: "{{`The Name Node installed on {{ $labels.instance }} is reporting that blocks are missing and/or corrupt. Use 'hdfs fsck' to diagnose the issue further and determine which files are affected.`}}"
     ##
     ## Set of rules for the blackbox_exporter service.
     ##

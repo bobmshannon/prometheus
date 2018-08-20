@@ -526,7 +526,7 @@ default_conf:
     ca_file: '{{ ssl.ca_path }}'
     prometheus_metrics: '{{ discovered.prometheus-metrics }}'
     blackbox_exporter: '{{ discovered.blackbox-exporter }}'
-    external_http_uris_probe: '{{ discovered.multipass-ext-uris }}'
+    external_http_uris_probe: '{{ flatten(discovered.multipass-ext-uris) }}'
     retention_period: 15d
     scrape_interval: 30s
     scrape_timeout: 30s
@@ -556,8 +556,10 @@ discovery:
       role: metrics-agent
       stack: '*'
     multipass-ext-uris:
+      all: true
       role: multipass
       select: external_uris
+      stack: '*'
     prometheus-metrics:
       all: true
       role: prometheus-metrics

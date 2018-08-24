@@ -513,7 +513,7 @@ default_conf:
     address: '{{ host.hostname }}'
     alertmanager_path: '{{ discovered.alertmanager-path }}'
     alertmanager_scheme: '{{ discovered.alertmanager-scheme }}'
-    alertmanagers: '{{ discovered.all-alertmanagers }}'
+    alertmanagers: '{{ flatten(discovered.all-alertmanagers) }}'
     context_path: '/prometheus'
     evaluation_interval: 1m
     hostname: '{{ host.hostname }}'
@@ -547,8 +547,8 @@ discovery:
       select: scheme
     all-alertmanagers:
       all: true
-      role: alertmanager
-      select: endpoint
+      role: alertmanager-endpoint
+      select: uris
     prometheus-sink:
       role: prometheus-sink
     metrics-agent:

@@ -464,7 +464,7 @@ default_conf:
         labels:
           severity: p1
         annotations:
-          summary: "{{`HDFS forecasted to run out of capacity in 1 month`}}"
+          summary: "{{`HDFS forecast to run out of capacity in 1 month`}}"
           description: "{{`Based on the last 2 weeks of usage, HDFS is forecast to run out of blocks in a month. This is a strong indicator that the cluster is at risk of running out of available blocks and that steps should be taken to free up additional blocks and/or provision additional Data Nodes.`}}"
       # Alert if HDFS contains corrupt or missing blocks.
       - alert: HDFSCorruptOrMissingBlocks

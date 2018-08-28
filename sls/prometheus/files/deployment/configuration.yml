@@ -249,7 +249,7 @@ default_conf:
           severity: p0
         annotations:
           summary: "{{`Filesystem mounted at {{ $labels.mountpoint }} on host {{ $labels.instance }} is running out of space`}}"
-          description: "{{`The filesystem mounted at {{ $labels.mountpoint }} and backed by the {{ $labels.device }} device is currently at {{ $value }}% usage and is very close to running out of space.`}}"
+          description: "{{`The filesystem mounted at {{ $labels.mountpoint }} and backed by the {{ $labels.device }} device is currently at {{ $value | printf \"%.2f\" }}% usage and is very close to running out of space.`}}"
       # Page if the disk is predicted to fill up in 4 hours.
       - alert: HostDiskWillFillIn4Hours
         expr: predict_linear(node_filesystem_usage_percent{mountpoint!="/tmp"}[4h], 60 * 60 * 4) >= 100 and on(instance, job) (time() - node_installation_time_seconds > 3600)
@@ -411,7 +411,7 @@ default_conf:
           severity: p0
         annotations:
           summary: Less than 80% of total Data Nodes are available
-          description: "{{`The total number of available Data Nodes has remained below 80% over the last 30 minutes. The current percent of available Data Nodes is {{ $value | printf '%.2f' }}%. This indicates that the cluster is operating with degraded capacity.`}}"
+          description: "{{`The total number of available Data Nodes has remained below 80% over the last 30 minutes. The current percent of available Data Nodes is {{ $value | printf \"%.2f\" }}%. This indicates that the cluster is operating with degraded capacity.`}}"
       # Page if the Name Node is experiencing memory pressure.
       - alert: HDFSNameNodeMemoryPressure
         expr: (quantile_over_time(0.5, namenode_heap_usage_bytes{}[15m]) / namenode_heap_usage_max_bytes > 0.95) and (increase(namenode_cms_collection_count{}[15m]) > 0)
@@ -455,8 +455,8 @@ default_conf:
         labels:
           severity: p1
         annotations:
-          summary: "{{`{{ $value | printf '%.2f' }}% free capacity remaining on HDFS`}}"
-          description: "{{`HDFS has only {{ $value | printf '%.2f' }}% free capacity remaining. Consider reducing usage or plan to provision additional Data Nodes in the future.`}}"
+          summary: "{{`{{ $value | printf \"%.2f\" }}% free capacity remaining on HDFS`}}"
+          description: "{{`HDFS has only {{ $value | printf \"%.2f\" }}% free capacity remaining. Consider reducing usage or plan to provision additional Data Nodes in the future.`}}"
       # Alert if HDFS is forecast to run out of capacity in one month.
       - alert: HDFSWillRunOutOfCapacityIn1Month
         expr: predict_linear(namenode_capacity_used_blocks{}[14d], 60 * 60 * 24 * 30) <= 0
@@ -486,8 +486,8 @@ default_conf:
         labels:
           severity: p2
         annotations:
-          description: "{{`The TLS certificate for {{ $labels.instance }} is due to expire in {{ $value }} day(s). Reach out to the certificate authority and request that a new certificate be issued.`}}"
-          summary: "{{`TLS cert for {{ $labels.instance }} expires in {{ $value }} day(s)`}}"
+          description: "{{`The TLS certificate for {{ $labels.instance }} is due to expire in {{ $value | printf \"%.2f\" }} day(s). Reach out to the certificate authority and request that a new certificate be issued.`}}"
+          summary: "{{`TLS cert for {{ $labels.instance }} expires in {{ $value | printf \"%.2f\" }} day(s)`}}"
       # Alert if any probes are failing (e.g rc =! 2xx, no response, ect)
       - alert: BlackboxProbeDown
         expr: probe_success == 0

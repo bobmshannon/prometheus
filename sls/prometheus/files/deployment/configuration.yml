@@ -405,7 +405,7 @@ default_conf:
           description: "{{`The Name Node monitored by {{ $labels.instance }} is down. Unless HA is configured an unreachable Name Node will render HDFS inaccessible.`}}"
       # Page if less than 80% of the HDFS Data Nodes are available.
       - alert: HDFSDataNodesAvailable
-        expr: namenode_live_data_nodes_total/(namenode_stale_data_nodes_total+namenode_dead_data_nodes_total+namenode_live_data_nodes_total) < 0.80
+        expr: namenode_live_data_nodes/(namenode_stale_data_nodes+namenode_dead_data_nodes+namenode_live_data_nodes) < 0.80
         for: 30m
         labels:
           severity: p0
@@ -423,7 +423,7 @@ default_conf:
           description: "{{`The median heap usage for the Name Node installed on {{ $labels.instance }} has remained over 95% through one or more old GC collections over the past 15 minutes. A failing Name Node will render HDFS unavailable and therefore steps should be taken to reduce memory usage or increase the heap size of the Name Node to ensure that cluster continues to operate reliably.`}}"
       # Page if the Name Node has one or more failed directories.
       - alert: HDFSNameNodeFailedDirectories
-        expr: namenode_failed_dirs_total > 1
+        expr: namenode_failed_dirs > 1
         for: 5m
         labels:
           severity: p0
@@ -432,7 +432,7 @@ default_conf:
           description: "{{`The Name Node installed on {{ $labels.instance }} has {{ $value }} failed directories. For more information about which directories have failed, check the Name Node UI.`}}"
       # Alert if a Data Node has one or more failed volumes.
       - alert: HDFSFailedVolumes
-        expr: datanode_failed_volumes_total > 0
+        expr: datanode_failed_volumes > 0
         for: 5m
         labels:
           severity: p1
@@ -468,7 +468,7 @@ default_conf:
           description: "{{`Based on the last 2 weeks of usage, HDFS is forecast to run out of blocks in a month. This is a strong indicator that the cluster is at risk of running out of available blocks and that steps should be taken to free up additional blocks and/or provision additional Data Nodes.`}}"
       # Alert if HDFS contains corrupt or missing blocks.
       - alert: HDFSCorruptOrMissingBlocks
-        expr: namenode_corrupt_blocks_total > 0 or namenode_missing_blocks_total > 0
+        expr: namenode_corrupt_blocks > 0 or namenode_missing_blocks > 0
         for: 5m
         labels:
           severity: p1

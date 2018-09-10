@@ -14,7 +14,6 @@
 package web
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -37,7 +36,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	pprof_runtime "runtime/pprof"
 	template_text "text/template"
 
 	"github.com/cockroachdb/cmux"
@@ -174,6 +172,7 @@ type Options struct {
 	CAFile               string
 	CertificateFile      string
 	KeyFile              string
+	RemoteReadLimit      int
 }
 
 func instrumentHandler(handlerName string, handler http.HandlerFunc) http.HandlerFunc {
@@ -232,6 +231,9 @@ func New(logger log.Logger, o *Options) *Handler {
 		h.testReady,
 		h.options.TSDB,
 		h.options.EnableAdminAPI,
+		logger,
+		h.ruleManager,
+		h.options.RemoteReadLimit,
 	)
 
 	if o.RoutePrefix != "/" {
@@ -259,8 +261,6 @@ func New(logger log.Logger, o *Options) *Handler {
 	router.Get("/version", readyf(h.version))
 	router.Get("/service-discovery", readyf(h.serviceDiscovery))
 
-	router.Get("/heap", h.dumpHeap)
-
 	router.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	router.Get("/federate", readyf(httputil.CompressionHandler{
@@ -269,7 +269,11 @@ func New(logger log.Logger, o *Options) *Handler {
 
 	router.Get("/consoles/*filepath", readyf(h.consoles))
 
-	router.Get("/static/*filepath", h.serveStaticAsset)
+	router.Get("/static/*filepath", func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = filepath.Join("/static", route.Param(r.Context(), "filepath"))
+		fs := http.FileServer(ui.Assets)
+		fs.ServeHTTP(w, r)
+	})
 
 	if o.UserAssetsPath != "" {
 		router.Get("/user/*filepath", route.FileServe(o.UserAssetsPath))
@@ -354,28 +358,6 @@ func serveDebug(w http.ResponseWriter, req *http.Request) {
 		req.URL.Path = "/debug/pprof/" + subpath
 		pprof.Index(w, req)
 	}
-}
-
-func (h *Handler) serveStaticAsset(w http.ResponseWriter, req *http.Request) {
-	fp := route.Param(req.Context(), "filepath")
-	fp = filepath.Join("web/ui/static", fp)
-
-	info, err := ui.AssetInfo(fp)
-	if err != nil {
-		level.Warn(h.logger).Log("msg", "Could not get file info", "err", err, "file", fp)
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	file, err := ui.Asset(fp)
-	if err != nil {
-		if err != io.EOF {
-			level.Warn(h.logger).Log("msg", "Could not get file", "err", err, "file", fp)
-		}
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	http.ServeContent(w, req, info.Name(), info.ModTime(), bytes.NewReader(file))
 }
 
 // Ready sets Handler to be ready.
@@ -832,11 +814,21 @@ func tmplFuncs(consolesPath string, opts *Options) template_text.FuncMap {
 
 			return alive
 		},
-		"healthToClass": func(th scrape.TargetHealth) string {
+		"targetHealthToClass": func(th scrape.TargetHealth) string {
 			switch th {
 			case scrape.HealthUnknown:
 				return "warning"
 			case scrape.HealthGood:
+				return "success"
+			default:
+				return "danger"
+			}
+		},
+		"ruleHealthToClass": func(rh rules.RuleHealth) string {
+			switch rh {
+			case rules.HealthUnknown:
+				return "warning"
+			case rules.HealthGood:
 				return "success"
 			default:
 				return "danger"
@@ -858,15 +850,32 @@ func tmplFuncs(consolesPath string, opts *Options) template_text.FuncMap {
 }
 
 func (h *Handler) getTemplate(name string) (string, error) {
-	baseTmpl, err := ui.Asset("web/ui/templates/_base.html")
+	var tmpl string
+
+	appendf := func(name string) error {
+		f, err := ui.Assets.Open(filepath.Join("/templates", name))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		b, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
+		tmpl += string(b)
+		return nil
+	}
+
+	err := appendf("_base.html")
 	if err != nil {
 		return "", fmt.Errorf("error reading base template: %s", err)
 	}
-	pageTmpl, err := ui.Asset(filepath.Join("web/ui/templates", name))
+	err = appendf(name)
 	if err != nil {
 		return "", fmt.Errorf("error reading page template %s: %s", name, err)
 	}
-	return string(baseTmpl) + string(pageTmpl), nil
+
+	return tmpl, nil
 }
 
 func (h *Handler) executeTemplate(w http.ResponseWriter, name string, data interface{}) {
@@ -892,18 +901,6 @@ func (h *Handler) executeTemplate(w http.ResponseWriter, name string, data inter
 		return
 	}
 	io.WriteString(w, result)
-}
-
-func (h *Handler) dumpHeap(w http.ResponseWriter, r *http.Request) {
-	target := fmt.Sprintf("/tmp/%d.heap", time.Now().Unix())
-	f, err := os.Create(target)
-	if err != nil {
-		level.Error(h.logger).Log("msg", "Could not dump heap", "err", err)
-	}
-	fmt.Fprintf(w, "Writing to %s...", target)
-	defer f.Close()
-	pprof_runtime.WriteHeapProfile(f)
-	fmt.Fprintf(w, "Done")
 }
 
 // AlertStatus bundles alerting rules and the mapping of alert states to row classes.

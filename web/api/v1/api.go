@@ -126,11 +126,11 @@ type API struct {
 	targetRetriever       targetRetriever
 	alertmanagerRetriever alertmanagerRetriever
 
-	rulesRetriever        rulesRetriever
-	now                   func() time.Time
-	config                func() config.Config
-	flagsMap              map[string]string
-	ready                 func(http.HandlerFunc) http.HandlerFunc
+	rulesRetriever rulesRetriever
+	now            func() time.Time
+	config         func() config.Config
+	flagsMap       map[string]string
+	ready          func(http.HandlerFunc) http.HandlerFunc
 
 	db              func() *tsdb.DB
 	enableAdmin     bool

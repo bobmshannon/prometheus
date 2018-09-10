@@ -23,6 +23,7 @@ import (
 	"github.com/prometheus/prometheus/pkg/textparse"
 	"github.com/prometheus/prometheus/pkg/timestamp"
 	"github.com/prometheus/prometheus/storage"
+	"io"
 )
 
 type Pusher struct {
@@ -53,18 +54,29 @@ func (p *Pusher) Push(data []byte) (total, added int, err error) {
 	level.Debug(p.logger).Log("msg", "Pushing data into Prometheus", "data", string(data))
 
 loop:
-	for parser.Next() {
+	for {
+		var et textparse.Entry
+		et, err := parser.Next()
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			break
+		}
+		if et != textparse.EntrySeries {
+			continue
+		}
 		total++
 
 		var labels labels.Labels
 
-		buf, ts, val := parser.At()
+		buf, ts, val := parser.Series()
 		if ts == nil {
 			ts = &now
 		}
 		parser.Metric(&labels)
 
-		_, err := p.app.Add(labels, *ts, val)
+		_, err = p.app.Add(labels, *ts, val)
 		switch err {
 		case nil:
 			added++
@@ -84,9 +96,6 @@ loop:
 			level.Debug(p.logger).Log("msg", "unexpected error", "series", string(buf), "err", err)
 			break loop
 		}
-	}
-	if err == nil {
-		err = parser.Err()
 	}
 	if numOutOfOrder > 0 {
 		level.Warn(p.logger).Log("msg", "Error on ingesting out-of-order samples", "num_dropped", numOutOfOrder)

@@ -159,22 +159,13 @@ default_conf:
       rules:
       # Alert if the sink stops processing metrics.
       - alert: SinkNotIngestingMetrics
-        expr: rate(sink_metrics_processed:count{}[5m]) == 0
+        expr: rate(sink_metrics_processed_count{}[5m]) == 0
         for: 10m
         labels:
           severity: p1
         annotations:
           description: "{{`The Sink installed on {{ $labels.host }} has stopped ingesting {{ $labels.input }} metrics. This indicates that metrics agents have stopped sending telemetry, or that the Sink is in an unhealthy state.`}}"
           summary: "{{`Sink not ingesting {{ $labels.input }} metrics`}}"
-      # Alert if the sink stops emitting telemetry.
-      - alert: SinkNoData
-        expr: absent(sink_metrics_processed:count) == 1
-        for: 10m
-        labels:
-          severity: p1
-        annotations:
-          description: "The Sink installed on {{ discovered.prometheus-sink.hostname }} has stopped emitting metrics. This indicates that the Sink is not running, is in an unhealthy state, or that metrics agents (e.g. caelumd) are no longer functioning correctly."
-          summary: "Sink installed on {{ discovered.prometheus-sink.hostname }} stopped emitting metrics"
     ##
     ## The set of SLS compliant service baseline alerting rules evaluated by Prometheus.
     ##

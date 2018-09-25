@@ -362,15 +362,6 @@ default_conf:
         annotations:
           summary: "{{`High CPU usage on {{ $labels.instance }}`}}"
           description: "{{`CPU usage on {{ $labels.instance }} has remained over 85% over the past 2 hours which is excessively high.`}}"
-      # Alert if the host is retransmitting TCP segments.
-      - alert: HostRetransmittedTCPSegments
-        expr: rate(node_netstat_Tcp_RetransSegs{}[5m]) > 100
-        for: 30m
-        labels:
-          severity: p2
-        annotations:
-          summary: "{{`Retransmitted TCP segments detected on {{ $labels.instance }}`}}"
-          description: "{{`Retransmitted TCP segments detected on {{ $labels.instance }} which is an indicator of saturation and other network issues which can adversely impact performance.`}}"
       # Alert if the host is dropping packets.
       - alert: HostDroppedPackets
         expr: rate(node_network_receive_drop_total{}[5m]) > 100 or rate(node_network_transmit_drop_total{}[5m]) > 100

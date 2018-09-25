@@ -13,6 +13,7 @@ default_conf:
     WEB_PROTOCOL: '{{ conf.prometheus.protocol }}'
     WEB_ROUTE_PREFIX: '{{ conf.prometheus.context_path }}'
     RETENTION_PERIOD: '{{ conf.prometheus.retention_period }}'
+    HEALTH_CHECK_SECRET: '{{ conf.prometheus.health_check_secret }}'
   logrotate:
     files:
       - filepath: '{{ conf.ENV.LOG_FILE }}'
@@ -506,6 +507,7 @@ default_conf:
     certificate_file: '{{ ssl.cert_path }}'
     key_file: '{{ ssl.pem_path }}'
     ca_file: '{{ ssl.ca_path }}'
+    health_check_secret: "{{ plaintext_secret(name: 'health-check-shared-secret') }}"
     prometheus_metrics: '{{ discovered.prometheus-metrics }}'
     blackbox_exporter: '{{ discovered.blackbox-exporter }}'
     external_http_uris_probe: '{{ flatten(discovered.multipass-ext-uris) }}'
@@ -562,6 +564,12 @@ discovery:
       role: sls
       skylab_node:
         home-dir: '{{ service_home }}'
+    sls-status:
+      path: '{{ conf.prometheus.context_path }}/status'
+      port: '{{ conf.prometheus.port }}'
+      role: sls-status
+      scheme: '{{ conf.prometheus.protocol }}'
+      health-check-shared-secret: "{{ plaintext_secret(name: 'health-check-shared-secret') }}"
     prometheus:
       external_hostname: '{{ conf.external_hostname }}'
       path: '{{ conf.prometheus.context_path }}'
@@ -649,5 +657,8 @@ managed_files:
     type: tmpl
 generated_secrets:
   oauth-secret:
+    length: 24
+    secret-type: random_string
+  health-check-shared-secret:
     length: 24
     secret-type: random_string

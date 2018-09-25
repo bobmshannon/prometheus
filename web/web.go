@@ -66,6 +66,7 @@ import (
 	"github.com/prometheus/prometheus/util/httputil"
 	api_v1 "github.com/prometheus/prometheus/web/api/v1"
 	"github.com/prometheus/prometheus/web/ui"
+	"github.palantir.build/SRX/fireengine-server/pkg/healthutils"
 )
 
 var localhostRepresentations = []string{"127.0.0.1", "localhost"}
@@ -173,6 +174,7 @@ type Options struct {
 	CertificateFile      string
 	KeyFile              string
 	RemoteReadLimit      int
+	HealthCheckSecret    string
 }
 
 func instrumentHandler(handlerName string, handler http.HandlerFunc) http.HandlerFunc {
@@ -312,6 +314,9 @@ func New(logger log.Logger, o *Options) *Handler {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Prometheus is Ready.\n")
 	}))
+
+	// Register a SLS health check endpoint.
+	router.Get("/status/health", healthutils.HealthyCheckHandler("PROMETHEUS", "Prometheus is healthy.", o.HealthCheckSecret))
 
 	return h
 }

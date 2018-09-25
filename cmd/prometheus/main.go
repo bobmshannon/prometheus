@@ -155,6 +155,9 @@ func main() {
 	a.Flag("web.ca-file", "Path to CA certificate bundle used for verifying clients.").
 		Default("<path>").StringVar(&cfg.web.CAFile)
 
+	a.Flag("web.health-check-secret", "Secret to use when authenticating requests to the SLS health check endpoint. Defaults to an empty string or no authentication.").
+		Default("").StringVar(&cfg.web.HealthCheckSecret)
+
 	a.Flag("web.console.templates", "Path to the console template directory, available at /consoles.").
 		Default("consoles").StringVar(&cfg.web.ConsoleTemplatesPath)
 

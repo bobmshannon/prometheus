@@ -35,7 +35,7 @@ publish_steps: &publish_steps
   - restore_cache:
       keys:
         - &out-cache-key out-{{ .Environment.CIRCLE_WORKFLOW_ID }}-{{ .Environment.CIRCLE_SHA1 }}-v1
-  - run: ./godelw publish artifactory --url https://artifactory.palantir.build --repository "$PUBLISH_REPO" --user "$ARTIFACTORY_USERNAME" --password "$ARTIFACTORY_PASSWORD"
+  - run: ./godelw publish artifactory --url https://artifactory.palantir.build --repository "$PUBLISH_REPO" --username "$ARTIFACTORY_USERNAME" --password "$ARTIFACTORY_PASSWORD"
 
 version: 2
 jobs:

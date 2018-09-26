@@ -1,3 +1,9 @@
+tasks-config-providers:
+  resolvers:
+    - https://publish.artifactory.palantir.build/artifactory/internal-dist-release/{{GroupPath}}/{{Product}}/{{Version}}/{{Product}}-{{Version}}.yml
+  providers:
+    - locator:
+        id: com.palantir.di-godel-config:di-godel-config:1.7.0
 exclude:
   names:
     - "\\..+"

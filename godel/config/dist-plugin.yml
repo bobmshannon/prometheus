@@ -9,7 +9,6 @@ products:
       - os: darwin
         arch: amd64
     dist:
-      output-dir: sls/prometheus/dist
       disters:
         sls:
           type: sls

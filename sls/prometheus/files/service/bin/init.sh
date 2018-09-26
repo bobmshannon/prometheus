@@ -28,9 +28,9 @@ cd "$SERVICE_HOME"
 OS_ARCH="$(uname -s | awk '{print tolower($0)}')-amd64"
 
 ACTION=$1
-SERVICE="{{.ProductName}}"
+SERVICE="{{Product}}"
 PIDFILE="var/run/$SERVICE.pid"
-SERVICE_CMD="$SERVICE_HOME/service/bin/$OS_ARCH/$SERVICE {{.Dist.ServiceArgs}}"
+SERVICE_CMD="$SERVICE_HOME/service/bin/$OS_ARCH/$SERVICE {{ServiceArgs}}"
 CUSTOM_SLS_LOG="custom-sls-log"
 CUSTOM_SLS_LOG_CMD="$SERVICE_HOME/service/bin/$OS_ARCH/$CUSTOM_SLS_LOG convert"
 
@@ -146,7 +146,7 @@ restart)
     service/bin/init.sh stop
     service/bin/init.sh start
 ;;
-reload){{if .Dist.Reloadable}}
+reload){{if Reloadable}}
     printf "%-50s" "Reloading '$SERVICE'..."
     if service/bin/init.sh status > /dev/null 2>&1; then
         PID=$(cat $PIDFILE)
@@ -168,6 +168,6 @@ reload){{if .Dist.Reloadable}}
 
 
 *)
-    echo "Usage: $0 status|start|stop|console|restart|{{if .Dist.Reloadable}}|reload{{end}}"
+    echo "Usage: $0 status|start|stop|console|restart|{{if Reloadable}}|reload{{end}}"
     exit 1
 esac

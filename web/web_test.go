@@ -27,6 +27,7 @@ import (
 	"github.com/prometheus/prometheus/storage/tsdb"
 	"github.com/prometheus/prometheus/util/testutil"
 	libtsdb "github.com/prometheus/tsdb"
+	"strings"
 )
 
 func TestMain(m *testing.M) {
@@ -107,6 +108,12 @@ func TestReadyAndHealthy(t *testing.T) {
 		Protocol:       "http",
 		EnableAdminAPI: true,
 		TSDB:           func() *libtsdb.DB { return db },
+		ExternalURL: &url.URL{
+			Scheme: "http",
+			Host:   "localhost:9090",
+			Path:   "/",
+		},
+		Version: &PrometheusVersion{},
 	}
 
 	opts.Flags = map[string]string{}
@@ -134,6 +141,21 @@ func TestReadyAndHealthy(t *testing.T) {
 	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
 
 	resp, err = http.Get("http://localhost:9090/version")
+
+	testutil.Ok(t, err)
+	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
+
+	resp, err = http.Get("http://localhost:9090/graph")
+
+	testutil.Ok(t, err)
+	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
+
+	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/snapshot", "", strings.NewReader(""))
+
+	testutil.Ok(t, err)
+	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
+
+	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/delete_series", "", strings.NewReader("{}"))
 
 	testutil.Ok(t, err)
 	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)

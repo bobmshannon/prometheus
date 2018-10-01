@@ -442,7 +442,7 @@ default_conf:
           description: "{{`HDFS has only {{ $value | printf \"%.2f\" }}% free capacity remaining. Consider reducing usage or plan to provision additional Data Nodes in the future.`}}"
       # Alert if HDFS is forecast to run out of capacity in one month.
       - alert: HDFSWillRunOutOfCapacityIn1Month
-        expr: predict_linear(namenode_capacity_used_blocks{}[14d], 60 * 60 * 24 * 30) <= 0
+        expr: predict_linear(namenode_capacity_remaining_blocks{}[14d], 60 * 60 * 24 * 30) <= 0
         for: 10m
         labels:
           severity: p1

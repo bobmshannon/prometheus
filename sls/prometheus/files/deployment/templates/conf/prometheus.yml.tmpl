@@ -13,6 +13,7 @@ scrape_configs:
   - job_name: {{ .job_name }}
     metrics_path: {{ .metrics_path }}
     scheme: {{ .scheme }}
+    {{ if .bearer_token }}bearer_token: {{ .bearer_token }}{{ end }}
     static_configs:
       - targets:
         {{ range .static_configs }}{{ range .targets }}- {{ . }}{{ end }}{{ end }}
@@ -45,6 +46,7 @@ scrape_configs:
       username: {{ .basic_auth.username }}
       password: {{ .basic_auth.password }}
     {{ end -}}
+    {{ if .bearer_token }}bearer_token: {{ .bearer_token }}{{ end }}
     {{ if .metric_relabel_configs }}metric_relabel_configs:
       {{ range $relabel_config := .metric_relabel_configs -}}
       {{ if $relabel_config.source_labels -}}
@@ -95,6 +97,7 @@ scrape_configs:
         - {{ . }}
         {{ end -}}
         {{ end }}
+    {{ if .bearer_token }}bearer_token: {{ .bearer_token }}{{ end }}
     {{ if .scrape_interval }}
     scrape_interval: {{ .scrape_interval }}
     {{ end }}

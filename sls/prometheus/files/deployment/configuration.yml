@@ -352,8 +352,8 @@ default_conf:
         labels:
           severity: p2
         annotations:
-          summary: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days`}}"
-          description: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value }} days which likely indicates that the currently installed and running kernel is out of date.`}}"
+          summary: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value | printf \"%.2f\" }} days`}}"
+          description: "{{`Host {{ $labels.instance }} has not been rebooted in {{ $value | printf \"%.2f\" }} days which likely indicates that the currently installed and running kernel is out of date.`}}"
       # Alert if CPU usage is excessively high for an extended period of time.
       - alert: HostHighCPUUsage
         expr: 100-sum(node_cpu_usage_percent{mode=~"idle|iowait"}) by (instance) > 85

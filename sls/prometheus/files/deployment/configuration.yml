@@ -172,6 +172,16 @@ default_conf:
     ##
     - name: sls.rules
       rules:
+      ## Recording rules that are useful for calculating availability on a service or node-level basis using SLS health status.
+      # slshealthstatus_healthy is 1 if a service node's health check indicates that it is available, is 0 otherwise.
+      - expr: '(slshealthstatus_value >= bool 522) + (slshealthstatus_value == bool 517) != bool 1'
+        record: slshealthstatus_healthy
+      # service_node:slshealthstatus_healthy is 1 if all of the service node's health checks indicates that it is available, is 0 otherwise.
+      - expr: '(sum(slshealthstatus_healthy == bool 0) by (product,stack_id,parent_id,node_id,host,deployment) > bool 0) != bool 1'
+        record: 'service_node:slshealthstatus_healthy'
+      # service:slshealthstatus_healthy:has_healthy_nodes is 1 if at least one of a service's nodes is available.
+      - expr: 'sum(service_node:slshealthstatus_healthy) by (deployment,parent_id,product,stack_id) > bool 0'
+        record: 'service:slshealthstatus_healthy:has_healthy_nodes'
       # Notify if a sls-service reports an non-healthy state.
       - alert: SLSServiceNotHealthy
         annotations:

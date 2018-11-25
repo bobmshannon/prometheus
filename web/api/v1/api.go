@@ -716,18 +716,14 @@ type RuleDiscovery struct {
 
 // RuleGroup has info for rules which are part of a group
 type RuleGroup struct {
-	Name string `json:"name"`
-	File string `json:"file"`
-	// In order to preserve rule ordering, while exposing type (alerting or recording)
-	// specific properties, both alerting and recording rules are exposed in the
-	// same array.
-	Rules    []rule  `json:"rules"`
-	Interval float64 `json:"interval"`
+	Name           string          `json:"name"`
+	File           string          `json:"file"`
+	RecordingRules []RecordingRule `json:"recordingRules"`
+	AlertingRules  []AlertingRule  `json:"alertingRules"`
+	Interval       float64         `json:"interval"`
 }
 
-type rule interface{}
-
-type alertingRule struct {
+type AlertingRule struct {
 	Name        string           `json:"name"`
 	Query       string           `json:"query"`
 	Duration    float64          `json:"duration"`
@@ -736,18 +732,14 @@ type alertingRule struct {
 	Alerts      []*Alert         `json:"alerts"`
 	Health      rules.RuleHealth `json:"health"`
 	LastError   string           `json:"lastError,omitempty"`
-	// Type of an alertingRule is always "alerting".
-	Type string `json:"type"`
 }
 
-type recordingRule struct {
+type RecordingRule struct {
 	Name      string           `json:"name"`
 	Query     string           `json:"query"`
 	Labels    labels.Labels    `json:"labels,omitempty"`
 	Health    rules.RuleHealth `json:"health"`
 	LastError string           `json:"lastError,omitempty"`
-	// Type of a recordingRule is always "recording".
-	Type string `json:"type"`
 }
 
 func (api *API) rules(r *http.Request) (interface{}, *apiError, func()) {
@@ -755,15 +747,14 @@ func (api *API) rules(r *http.Request) (interface{}, *apiError, func()) {
 	res := &RuleDiscovery{RuleGroups: make([]*RuleGroup, len(ruleGroups))}
 	for i, grp := range ruleGroups {
 		apiRuleGroup := &RuleGroup{
-			Name:     grp.Name(),
-			File:     grp.File(),
-			Interval: grp.Interval().Seconds(),
-			Rules:    []rule{},
+			Name:           grp.Name(),
+			File:           grp.File(),
+			Interval:       grp.Interval().Seconds(),
+			AlertingRules:  []AlertingRule{},
+			RecordingRules: []RecordingRule{},
 		}
 
 		for _, r := range grp.Rules() {
-			var enrichedRule rule
-
 			lastError := ""
 			if r.LastError() != nil {
 				lastError = r.LastError().Error()
@@ -771,7 +762,7 @@ func (api *API) rules(r *http.Request) (interface{}, *apiError, func()) {
 
 			switch rule := r.(type) {
 			case *rules.AlertingRule:
-				enrichedRule = alertingRule{
+				alertingRule := AlertingRule{
 					Name:        rule.Name(),
 					Query:       rule.Query().String(),
 					Duration:    rule.Duration().Seconds(),
@@ -780,23 +771,21 @@ func (api *API) rules(r *http.Request) (interface{}, *apiError, func()) {
 					Alerts:      rulesAlertsToAPIAlerts(rule.ActiveAlerts()),
 					Health:      rule.Health(),
 					LastError:   lastError,
-					Type:        "alerting",
 				}
+				apiRuleGroup.AlertingRules = append(apiRuleGroup.AlertingRules, alertingRule)
 			case *rules.RecordingRule:
-				enrichedRule = recordingRule{
+				recordingRule := RecordingRule{
 					Name:      rule.Name(),
 					Query:     rule.Query().String(),
 					Labels:    rule.Labels(),
 					Health:    rule.Health(),
 					LastError: lastError,
-					Type:      "recording",
 				}
+				apiRuleGroup.RecordingRules = append(apiRuleGroup.RecordingRules, recordingRule)
 			default:
 				err := fmt.Errorf("failed to assert type of rule '%v'", rule.Name())
 				return nil, &apiError{errorInternal, err}, nil
 			}
-
-			apiRuleGroup.Rules = append(apiRuleGroup.Rules, enrichedRule)
 		}
 		res.RuleGroups[i] = apiRuleGroup
 	}
